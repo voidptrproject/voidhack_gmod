@@ -23,11 +23,11 @@ namespace memory {
 		inline auto get_dos_header() const { return reinterpret_cast<PIMAGE_DOS_HEADER>(handle); }
 		inline auto get_nt_headers() const { return reinterpret_cast<PIMAGE_NT_HEADERS>(reinterpret_cast<std::uint8_t*>(handle) + get_dos_header()->e_lfanew); }
 
-		inline std::uint8_t* begin() {
+		inline std::uint8_t* begin() const {
 			return reinterpret_cast<std::uint8_t*>(get_handle());
 		}
 
-		inline std::uint8_t* end() {
+		inline std::uint8_t* end() const {
 			return reinterpret_cast<std::uint8_t*>(get_handle() + get_nt_headers()->OptionalHeader.SizeOfImage);
 		}
 	};
@@ -35,18 +35,37 @@ namespace memory {
 		module_t module;
 		_t ptr;
 
-		inline static symbol_t<_t> get_symbol(module_t module, std::string_view name) {
+		inline static symbol_t<_t> get_symbol(const module_t& module, std::string_view name) {
 			symbol_t<_t> symbol;
 			symbol.module = module;
 			symbol.ptr = (_t)GetProcAddress(module.get_handle(), name.data());
 			return symbol;
 		}
 
+		inline static symbol_t<_t> get_symbol(const module_t& module, const jm::memory_signature& sig) {
+			symbol_t<_t> symbol;
+			symbol.module = module;
+		}
+
 		inline _t operator->() { return ptr; }
 	};
-	
-	static inline constexpr auto relative_to_absolute(uintptr_t address, int offset, int instruction_size) noexcept 
-	{ return address + instruction_size + (*(int*)(address + offset)); }
+
+	static inline constexpr auto relative_to_absolute(uintptr_t address, int offset, int instruction_size) noexcept {
+		return address + instruction_size + (*(int*)(address + offset));
+	}
+
+	struct address_t {
+		address_t(uintptr_t addr) : address(addr) {}
+		address_t(const jm::memory_signature& sig, const module_t& mod) {
+			address = (uintptr_t)sig.find(mod.begin(), mod.end());
+		}
+		inline auto absolute(int offset, int instruction_size) {
+			return relative_to_absolute(address, offset, instruction_size);
+		}
+
+		uintptr_t operator()() { return address; }
+		uintptr_t address;
+	};
 
 	// Modules
 	static inline module_t tier0_module("tier0.dll");
