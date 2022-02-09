@@ -1,0 +1,3 @@
+[submodule "thirdparty/memory_signature"]
+	path = thirdparty/memory_signature
+	url = https://github.com/JustasMasiulis/memory_signature.git
