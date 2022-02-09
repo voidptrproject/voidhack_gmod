@@ -1,9 +1,12 @@
 ﻿cmake_minimum_required (VERSION 3.8)
 
-add_library ( gmod SHARED "gmod.cpp"  "memory.hpp"  "hooks.hpp" "hooks.cpp")
+file(GLOB_RECURSE GAME_SDK_FILES "${CMAKE_SOURCE_DIR}/gmod/" "*.cpp" "*.hpp" "*.h")
+message("GAME_SDK_FILES = ${GAME_SDK_FILES}")
 
-target_include_directories ( gmod PUBLIC ${memory_signature_include_path} )
-target_link_libraries ( gmod PRIVATE minhook )
+add_library ( gmod SHARED ${GAME_SDK_FILES})
+
+target_include_directories ( gmod PUBLIC ${memory_signature_include_path} ${kiero_include_path} )
+target_link_libraries ( gmod PRIVATE minhook d3d9 kiero_lib )
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   target_compile_options(gmod PRIVATE "/ZI")

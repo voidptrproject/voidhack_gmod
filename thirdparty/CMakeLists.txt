@@ -1,5 +1,8 @@
 cmake_minimum_required (VERSION 3.8)
 
 set ( memory_signature_include_path "${CMAKE_SOURCE_DIR}/thirdparty/memory_signature/include/" CACHE STRING "Path for memory_signature module" )
+set ( kiero_include_path "${CMAKE_SOURCE_DIR}/thirdparty/kiero/" CACHE STRING "Path for kiero module" )
+
+add_library ( kiero_lib "kiero/kiero.cpp" "kiero/kiero.h" )
 
 add_subdirectory ( minhook )

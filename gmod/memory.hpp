@@ -19,6 +19,10 @@ namespace memory {
 			handle = GetModuleHandle(module_name.data());
 		}
 
+		inline std::string get_name() const {
+			char name[MAX_PATH]; GetModuleFileName(handle, name, MAX_PATH);
+			return name;
+		}
 		inline auto get_handle() const { return handle; }
 		inline auto get_dos_header() const { return reinterpret_cast<PIMAGE_DOS_HEADER>(handle); }
 		inline auto get_nt_headers() const { return reinterpret_cast<PIMAGE_NT_HEADERS>(reinterpret_cast<std::uint8_t*>(handle) + get_dos_header()->e_lfanew); }
@@ -26,7 +30,6 @@ namespace memory {
 		inline std::uint8_t* begin() const {
 			return reinterpret_cast<std::uint8_t*>(get_handle());
 		}
-
 		inline std::uint8_t* end() const {
 			return reinterpret_cast<std::uint8_t*>(get_handle() + get_nt_headers()->OptionalHeader.SizeOfImage);
 		}
@@ -59,15 +62,22 @@ namespace memory {
 		address_t(const jm::memory_signature& sig, const module_t& mod) {
 			address = (uintptr_t)sig.find(mod.begin(), mod.end());
 		}
-		inline auto absolute(int offset, int instruction_size) {
+		inline auto absolute(int offset, int instruction_size) const {
 			return relative_to_absolute(address, offset, instruction_size);
+		}
+		inline auto get_info() const {
+			MEMORY_BASIC_INFORMATION mi; VirtualQuery((LPCVOID)address, &mi, sizeof(MEMORY_BASIC_INFORMATION));
+			return mi;
+		}
+		inline auto get_module() const {
+			return module_t((HMODULE)get_info().AllocationBase);
 		}
 
 		uintptr_t operator()() { return address; }
 		uintptr_t address;
 	};
 
-	// Modules
+	// Modules ------
 	static inline module_t tier0_module("tier0.dll");
 	static inline module_t menusystem_module("menusystem.dll");
 	static inline module_t engine_module("engine.dll");
@@ -77,7 +87,21 @@ namespace memory {
 	static inline module_t lua_shared_module("lua_shared.dll");
 	static inline module_t vgui_module("vgui2.dll");
 	static inline module_t vstdlib_module("vstdlib.dll");
+	// -----------
 
-	// Global vars
+	// Global vars --------
 	static inline HINSTANCE dllinstance;
+	// --------------
+
+	template<class t> struct interface_t {
+		interface_t(t* p) : ptr(p) {}
+		interface_t(const memory::module_t& mod, std::string_view name) { ptr = create_interface(mod, name); }
+
+		t* operator->() { return ptr; }
+		t* ptr;
+
+		static t* create_interface(const memory::module_t& mod, std::string_view name) {
+			return memory::symbol_t<t* (*)(const char*, int)>::get_symbol(mod, "CreateInterface").ptr(name.data(), 0);
+		}
+	};
 }
