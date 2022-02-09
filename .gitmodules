@@ -1,3 +1,6 @@
 [submodule "thirdparty/memory_signature"]
 	path = thirdparty/memory_signature
 	url = https://github.com/JustasMasiulis/memory_signature.git
+[submodule "thirdparty/minhook"]
+	path = thirdparty/minhook
+	url = https://github.com/TsudaKageyu/minhook
