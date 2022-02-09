@@ -1,5 +1,8 @@
 ﻿cmake_minimum_required (VERSION 3.8)
 
-project ("voidhack_gmod")
+project ( "voidhack_gmod" )
 
-add_subdirectory ("gmod")
+set (CMAKE_CXX_STANDARD 20)
+
+add_subdirectory ( "thirdparty" )
+add_subdirectory ( "gmod" )
