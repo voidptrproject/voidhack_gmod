@@ -5,10 +5,10 @@ message("GAME_SDK_FILES = ${GAME_SDK_FILES}")
 
 add_library ( gmod SHARED ${GAME_SDK_FILES})
 
-target_include_directories ( gmod PUBLIC ${memory_signature_include_path} ${kiero_include_path} )
-target_link_libraries ( gmod PRIVATE minhook d3d9 kiero_lib )
+target_include_directories ( gmod PUBLIC ${memory_signature_include_path} ${kiero_include_path} ${imgui_include_path} )
+target_link_libraries ( gmod PRIVATE minhook d3d9 kiero_lib imgui_lib )
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   target_compile_options(gmod PRIVATE "/ZI")
-  target_link_options(gmod PRIVATE "/SAFESEH:NO")
+  target_link_options(gmod PRIVATE "/SAFESEH:NO" "/INCREMENTAL:YES")
 endif()

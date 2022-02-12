@@ -73,7 +73,9 @@ namespace memory {
 			return module_t((HMODULE)get_info().AllocationBase);
 		}
 
-		uintptr_t operator()() { return address; }
+		uintptr_t operator()() const { return address; }
+		operator uintptr_t() const { return address; }
+
 		uintptr_t address;
 	};
 
