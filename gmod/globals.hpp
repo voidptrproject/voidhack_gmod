@@ -19,15 +19,30 @@ namespace internal {
 
 namespace settings {
 	namespace internal {
-		static inline ::internal::variables_storage_t settings;
+		::internal::variables_storage_t& get_settings_storage();
 	}
 
 	template<typename t> inline t& get(std::string_view name, const t& new_val = t()) {
-		if (!internal::settings.exists(name))
-			internal::settings[name] = new_val;
-		return *std::any_cast<t>(&internal::settings[name]);
+		if (!internal::get_settings_storage().exists(name))
+			internal::get_settings_storage()[name] = new_val;
+		return *std::any_cast<t>(&internal::get_settings_storage()[name]);
 	}
 	template<typename t> inline void set(std::string_view name, const t& val) {
-		internal::settings[name] = val;
+		internal::get_settings_storage()[name] = val;
+	}
+}
+
+namespace globals {
+	namespace internal {
+		::internal::variables_storage_t& get_globals_storage();
+	}
+
+	template<typename t> inline t& get(std::string_view name, const t& new_val = t()) {
+		if (!internal::get_globals_storage().exists(name))
+			internal::get_globals_storage()[name] = new_val;
+		return *std::any_cast<t>(&internal::get_globals_storage()[name]);
+	}
+	template<typename t> inline void set(std::string_view name, const t& val) {
+		internal::get_globals_storage()[name] = val;
 	}
 }

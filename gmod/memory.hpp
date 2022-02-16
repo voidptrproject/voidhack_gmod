@@ -102,6 +102,10 @@ namespace memory {
 		t* operator->() { return ptr; }
 		t* ptr;
 
+		uintptr_t* get_virtual_table() {
+			return *(uintptr_t**)ptr;
+		}
+
 		static t* create_interface(const memory::module_t& mod, std::string_view name) {
 			return memory::symbol_t<t* (*)(const char*, int)>::get_symbol(mod, "CreateInterface").ptr(name.data(), 0);
 		}

@@ -14,16 +14,16 @@ namespace input {
 	using key_t = std::uint32_t;
 	using handle_function_t = std::function<void(e_key_state state)>;
 
-	struct key_handler_t;
-	void add_handler(key_handler_t* handler);
-	key_handler_t* get_handler(std::string_view name);
+	struct key_handler;
+	void add_handler(key_handler* handler);
+	key_handler* get_handler(std::string_view name);
 	
-	struct key_handler_t {
+	struct key_handler {
 		std::string name;
 		key_t key;
 		handle_function_t function;
 
-		key_handler_t(std::string_view handler_name, key_t handler_key, handle_function_t handler_callback, bool add_to_list = true) {
+		key_handler(std::string_view handler_name, key_t handler_key, handle_function_t handler_callback, bool add_to_list = true) {
 			name = handler_name;
 			key = handler_key;
 			function = handler_callback;
@@ -36,17 +36,18 @@ namespace input {
 	};
 
 	namespace internal {
-		using handlers_storage_t = std::vector<key_handler_t*>;
+		using handlers_storage_t = std::vector<key_handler*>;
 
 		struct key_handlers_t {
 			handlers_storage_t handlers_storage;
 
 			inline auto get_handler(std::string_view name) {
-				return std::find_if(handlers_storage.begin(), handlers_storage.end(), [&](decltype(handlers_storage)::value_type v) { return v->name == name; });
+				return std::find_if(handlers_storage.begin(), handlers_storage.end(), 
+					[&](decltype(handlers_storage)::value_type v) { return v->name == name; });
 			}
 			inline auto begin() const { return handlers_storage.begin(); }
 			inline auto end() const { return handlers_storage.end(); }
-			inline auto add(key_handler_t* t) { 
+			inline auto add(key_handler* t) { 
 				return handlers_storage.emplace_back(t);
 			}
 		};
@@ -60,11 +61,11 @@ namespace input {
 		}
 	}
 
-	inline void add_handler(key_handler_t* handler) {
+	inline void add_handler(key_handler* handler) {
 		internal::get_handlers().add(handler);
 	}
 
-	inline key_handler_t* get_handler(std::string_view name) {
+	inline key_handler* get_handler(std::string_view name) {
 		auto handler = internal::get_handlers().get_handler(name);
 		return handler == internal::get_handlers().end() ? nullptr : *handler;
 	}

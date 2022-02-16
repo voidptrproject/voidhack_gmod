@@ -20,5 +20,6 @@ public:
 		using fn = bool(__fastcall*)(void*);
 		return (*(fn**)this)[57](this);
 	}
-	
 };
+
+INITIALIZE_INTERFACE(surface, i_surface, memory::matsurface_module, "VGUI_Surface030");
