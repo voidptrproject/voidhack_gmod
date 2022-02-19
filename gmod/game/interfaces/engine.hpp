@@ -9,11 +9,28 @@
 using button_code_t = int;
 using color32_s = float;
 
-class c_net_chan;
+#define FLOW_OUTGOING	0		
+#define FLOW_INCOMING	1
+#define MAX_FLOWS		2		// in & out
+
+class i_net_channel_info {
+public:
+	virtual void nop0() = 0;
+	virtual const char* get_ip_address() = 0;
+	virtual void nop2() = 0;
+	virtual void nop3() = 0;
+	virtual void nop4() = 0;
+	virtual void nop5() = 0;
+	virtual void nop6() = 0;
+	virtual void nop7() = 0;
+	virtual void nop8() = 0;
+	virtual float get_latency(int a2) = 0;
+	virtual float get_avg_latency(int a2) = 0;
+};
+
 class i_material;
 class c_audio_source;
 class i_material_system;
-class i_net_channel_info; //TODO: REVERSE THIS
 
 struct model_t;
 struct text_message_t;

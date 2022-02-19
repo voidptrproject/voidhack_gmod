@@ -22,6 +22,13 @@ enum render_view_info_t {
 	RENDERVIEW_SUPPRESSMONITORRENDERING = (1 << 2),
 };
 
+enum class e_frame_stage {
+	frame_undefined = -1, 
+	frame_start = 0, 
+	frame_render_start = 5, 
+	frame_render_end = 6 
+};
+
 class chl_client {
 public:
 	virtual void init(void) = 0;

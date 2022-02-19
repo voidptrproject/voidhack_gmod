@@ -52,12 +52,6 @@ inline long end_scane_hooked_fn(IDirect3DDevice9* device) {
 static inline hook_t<bool(__fastcall*)(i_client_mode*, float, c_user_cmd*)> create_move_hook ([](i_client_mode* self, float frame_time, c_user_cmd* cmd) -> bool {
 	if (!cmd || cmd->command_number == 0 || !interfaces::engine->is_in_game())
 		return create_move_hook.original(self, frame_time, cmd);
-	static int buttons;
-	static render::render_handler test_render([&](render::render_data_t& data) {
-		data.draw_list->AddText({ 100.f, 100.f }, ImColor(255, 0, 0), std::to_string(buttons).c_str());
-	});
-	buttons = cmd->buttons;
-
 	bool _return = false;
 	std::for_each(features::get_features_interface().features.begin(), features::get_features_interface().features.end(), [&](features::feature* f) {
 		if (f->create_move_callback)
@@ -88,8 +82,10 @@ static LRESULT STDMETHODCALLTYPE hooked_wndproc(HWND window, UINT message_type, 
 }
 
 static inline hook_t<void(__fastcall*)(chl_client*, int)> frame_stage_notify_hook([](chl_client* client, int frame_stage) {
-	return frame_stage_notify_hook.original(client, frame_stage);
-});
+	std::for_each(features::get_features_interface().features.begin(), features::get_features_interface().features.end(), [&](features::feature* f) {
+		if (f->frame_stage_callback) f->frame_stage_callback.value()(frame_stage);
+	});
+	return frame_stage_notify_hook.original(client, frame_stage);});
 
 void hooks::initialize_hooks() {
 	assert(MH_Initialize() == MH_OK);
@@ -99,6 +95,7 @@ void hooks::initialize_hooks() {
 	cl_move_hook.hook(memory::address_t({ "E8 ? ? ? ? FF 15 ? ? ? ? F2 0F 10 0D ? ? ? ? 85 FF" }, memory::engine_module).absolute(0x1, 0x5));
 	create_move_hook.hook(memory::address_t({ "40 53 48 83 EC 30 0F 29 74 24 ? 49 8B D8" }, memory::client_module));
 	frame_stage_notify_hook.hook(memory::address_t({ "48 83 EC 28 89 15 ? ? ? ?" }, memory::client_module));
+	//40 55 53 56 41 54 41 55 41 56 41 57 48 8D AC 24 ? ? ? ? 48 81 EC ? ? ? ? 48 8B 05 ? ? ? ? 48 33 C4 48 89 85 ? ? ? ? 45 8B 70 40
 	end_scene_hook.hook(kiero::getMethodsTable()[42]);
 	lock_cursor_hook.hook(interfaces::surface.get_virtual_table()[66]);
 }

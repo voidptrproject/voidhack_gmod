@@ -255,6 +255,30 @@ void ImGui::TextUnformatted(const char* text, const char* text_end)
     TextEx(text, text_end, ImGuiTextFlags_NoWidthForLargeClippedText);
 }
 
+void ImGui::CopiedText(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    CopiedTextV(fmt, args);
+    va_end(args);
+}
+
+void ImGui::CopiedTextV(const char* fmt, va_list args) {
+    ImGuiWindow* window = GetCurrentWindow();
+    if (window->SkipItems)
+        return;
+
+    ImGuiContext& g = *GImGui;
+    const char* text_end = g.TempBuffer + ImFormatStringV(g.TempBuffer, IM_ARRAYSIZE(g.TempBuffer), fmt, args);
+    TextEx(g.TempBuffer, text_end, ImGuiTextFlags_NoWidthForLargeClippedText);
+    if (IsItemHovered())
+        SetTooltip("Click to copy");
+
+    char tmp[512];
+    ImFormatStringV(tmp, IM_ARRAYSIZE(tmp), fmt, args);
+    if (IsItemClicked()) 
+        SetClipboardText(tmp);
+}
+
 void ImGui::Text(const char* fmt, ...)
 {
     va_list args;

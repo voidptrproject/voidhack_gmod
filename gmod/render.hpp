@@ -4,6 +4,7 @@
 
 #include <d3d9.h>
 #include <functional>
+#include <string_view>
 
 #include <imgui.h>
 
@@ -24,8 +25,6 @@ namespace render {
 
 	struct render_data_t {
 		ImDrawList* draw_list;
-
-		void render() {  }
 	};
 
 	struct render_handler {
@@ -36,4 +35,7 @@ namespace render {
 	};
 	
 	IDirect3DDevice9* get_device();
+
+	inline ImVec2 calculate_text_size(std::string_view text) { return ImGui::CalcTextSize(text.data()); }
+
 }

@@ -5,7 +5,7 @@
 
 #include "../game/entities/c_base_player.hpp"
 
-static inline features::feature bunny_hop([](float frame_time, c_user_cmd* cmd) {
+static bool movement_create_move(float frametime, c_user_cmd* cmd) {
 	if (settings::get<bool>("bhop")) {
 		auto local_player = get_local_player();
 		static bool should_fake = false;
@@ -26,4 +26,6 @@ static inline features::feature bunny_hop([](float frame_time, c_user_cmd* cmd) 
 		}
 	}
 	return false;
-});
+}
+
+static inline features::feature bunny_hop(features::pass_callback, movement_create_move);

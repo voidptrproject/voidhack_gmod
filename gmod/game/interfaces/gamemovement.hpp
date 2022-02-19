@@ -3,13 +3,12 @@
 #include "interface_define.hpp"
 
 #include "../misc/movedata.hpp"
+#include "../entities/c_base_entity.hpp"
 
 struct trace_t;
 
 class c_base_handle;
 typedef c_base_handle entity_handle_t;
-
-class c_entity;
 
 class i_game_movement
 {

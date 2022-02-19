@@ -10,11 +10,19 @@
 #include "input.hpp"
 
 static inline IDirect3DDevice9* device;
-static inline std::vector<render::render_handler> render_handlers;
-static inline render::internal::render_context_t render_context;
+
+inline auto& render_context() {
+	static render::internal::render_context_t _render_context;
+	return _render_context;
+}
+
+inline auto& render_handlers() {
+	static std::vector<render::render_handler*> _render_handlers;
+	return _render_handlers;
+}
 
 render::internal::render_context_t& render::internal::get_render_context() {
-	return render_context;
+	return render_context();
 }
 
 bool context_valid() {
@@ -48,7 +56,7 @@ void render::internal::render_hook(IDirect3DDevice9* dev, const memory::address_
 			ImGui::CreateContext();
 			ImGui_ImplWin32_Init(hwnd);
 			ImGui_ImplDX9_Init(dev);
-			ImGui::GetIO().IniFilename = 0;
+			ImGui::GetIO().IniFilename = "garrysmod\\cfg\\gmoduser_.txt";
 		}
 	});
 
@@ -72,6 +80,7 @@ void render::internal::render_hook(IDirect3DDevice9* dev, const memory::address_
 
 		ImGui::InputInt("TESTINPUT", &settings::get<int>("testint"));
 		ImGui::Checkbox("Bhop", &settings::get<bool>("bhop"));
+		ImGui::Checkbox("ESP", &settings::get<bool>("esp"));
 
 		ImGui::End();
 	} else {
@@ -84,11 +93,11 @@ void render::internal::render_hook(IDirect3DDevice9* dev, const memory::address_
 }
 
 void render::internal::add_render_handler(render_handler* handler) {
-	render_handlers.push_back(*handler);
+	render_handlers().push_back(handler);
 }
 
 void render::internal::notify_render_handlers(render_data_t& context) {
-	std::for_each(render_handlers.begin(), render_handlers.end(), [&](render_handler& h) { h.render_function(context); });
+	std::for_each(render_handlers().begin(), render_handlers().end(), [&](render_handler* h) { if (h) h->render_function(context); });
 }
 
 IDirect3DDevice9* render::get_device() {

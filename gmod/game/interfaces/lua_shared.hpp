@@ -3,9 +3,9 @@
 #include "interface_define.hpp"
 
 #include "../math/math.hpp"
-#include <vector>
+#include "../misc/color.hpp"
 
-class c_color {};
+#include <vector>
 
 class i_lua_callback
 {
@@ -22,7 +22,6 @@ public:
 };
 enum class lua_object_type
 {
-
 	INVALID = -1,
 	NIL,
 	BOOL,
@@ -84,7 +83,36 @@ using number_t = double;
 struct lua_State;
 typedef int (*CFunc)(lua_State* L);
 
-class i_lua_object;
+class c_lua_object {
+public:
+	/*0*/	virtual void* set() = 0;
+	/*1*/	virtual void* set_from_stack(int pos = -1) = 0;
+	/*2*/	virtual void* sub_A1F30() = 0;
+	/*3*/	virtual void* sub_A0F20() = 0;
+	/*4*/	virtual void* sub_A0E80() = 0;
+	/*5*/	virtual void* sub_A0360() = 0;
+	/*6*/	virtual void* sub_A03D0() = 0;
+	/*7*/	virtual void* sub_A0F60() = 0;
+	/*8*/	virtual void* sub_A14F0() = 0;
+	/*9*/	virtual void* sub_A13A0() = 0;
+	/*10*/	virtual void* sub_A1420() = 0;
+	/*11*/	virtual void* sub_A1490() = 0;
+	/*12*/	virtual void* sub_A1340() = 0;
+	/*13*/	virtual void* sub_A1400() = 0;
+	/*14*/	virtual void* sub_A1320() = 0;
+	/*15*/	virtual void* sub_A1600() = 0;
+	/*16*/	virtual void* sub_A1510() = 0;
+	/*17*/	virtual void* sub_A1720() = 0;
+	/*18*/	virtual void* sub_A15A0() = 0;
+	/*19*/	virtual void* sub_A1660() = 0;
+	/*20*/	virtual void* sub_A1580() = 0;
+	/*21*/	virtual bool get_member_bool(const char* name, bool def = false) = 0;
+	/*22*/	virtual int get_member_int(const char* name, int def = 0) = 0;
+	/*23*/	virtual float get_member_float(const char* name, float def = 0.f) = 0;
+	/*24*/	virtual const char* get_member_str(const char* name, const char* def = "") = 0;
+	/*25*/	virtual void* get_member_user_data(const char* name, void* def = 0) = 0;
+	/*26*/	virtual void* get_member_user_data_0(int pos_or_another_staff_i_fuck_you, void* def = 0) = 0;
+};
 
 class c_lua_interface
 {
@@ -148,7 +176,7 @@ public:
 	virtual void shutdown(void) = 0;
 	virtual void cycle(void) = 0;
 	virtual void global(void) = 0;
-	virtual i_lua_object* get_object(int) = 0;
+	virtual c_lua_object* get_object(int) = 0;
 	virtual void push_lua_object(void*) = 0;
 	virtual void push_lua_function() = 0;
 	virtual void lua_error(char const*, int) = 0;
@@ -246,5 +274,14 @@ namespace lua_tools {
 		in->call(0, output_num);
 	}
 }
+
+class gmod_lua_interface {
+	c_lua_interface* _interface;
+	c_lua_auto_pop p;
+public:
+	gmod_lua_interface(c_lua_interface* i) : _interface(i), p(i) {}
+
+	c_lua_interface* operator->() { return _interface; }
+};
 
 INITIALIZE_INTERFACE(lua_shared, c_lua_shared, memory::lua_shared_module, "LUASHARED003");

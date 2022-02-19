@@ -5,6 +5,8 @@
 #include <any>
 #include <algorithm>
 #include <map>
+#include <filesystem>
+#include <codecvt>
 
 namespace internal {
 	struct variables_storage_t {
@@ -44,5 +46,19 @@ namespace globals {
 	}
 	template<typename t> inline void set(std::string_view name, const t& val) {
 		internal::get_globals_storage()[name] = val;
+	}
+}
+
+namespace env {
+	inline std::filesystem::path get_data_path() {
+		auto path = (std::filesystem::path(std::getenv("APPDATA")) / L"voidproject") / L"gmod";
+		if (!std::filesystem::exists(path)) std::filesystem::create_directories(path);
+		return path;
+	}
+
+	inline std::string wstring_to_string(const std::wstring& wstr) {
+		using convert_typeX = std::codecvt_utf8<wchar_t>;
+		std::wstring_convert<convert_typeX, wchar_t> converterX;
+		return converterX.to_bytes(wstr);
 	}
 }

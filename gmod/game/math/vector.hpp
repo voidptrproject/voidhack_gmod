@@ -2,6 +2,7 @@
 #include <cfloat>
 #include <cmath>
 #include <string>
+#include <imgui.h>
 
 class c_vector
 {
@@ -51,7 +52,7 @@ public:
 	c_vector& operator*=(const c_vector& left);
 	c_vector& operator/=(const c_vector& left);
 
-	//explicit operator ImVec2() { return ImVec2{ x, y }; };
+	operator ImVec2() { return ImVec2{ x, y }; };
 
 	c_vector to_string_friendly() const
 	{

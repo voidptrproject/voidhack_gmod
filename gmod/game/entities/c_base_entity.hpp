@@ -28,6 +28,8 @@ static inline std::map<std::string, std::vector<std::string>> entity_bones_by_cl
 			  "ValveBiped.Bip01_R_Thigh", "ValveBiped.Bip01_R_Calf", "ValveBiped.Bip01_R_Foot", "ValveBiped.Bip01_R_Toe0"}}
 };
 
+class c_base_player;
+
 class c_base_entity : public i_client_entity
 {
 public:
@@ -84,6 +86,18 @@ public:
 			return {};
 		auto hitbox = bone_matrix[bone];
 		return { hitbox[0][3], hitbox[1][3], hitbox[2][3] };
+	}
+
+	inline c_base_player* as_player() const {
+		return (c_base_player*)this;
+	}
+
+	inline c_base_entity* as_entity() const {
+		return (c_base_entity*)this;
+	}
+
+	__forceinline bool equal(c_base_entity* other) const {
+		return other->get_index() == this->get_index();
 	}
 };
 

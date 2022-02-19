@@ -1,6 +1,7 @@
 #pragma once
 
 #include "c_base_entity.hpp"
+#include "../../memory.hpp"
 
 #include <algorithm>
 
@@ -46,6 +47,56 @@ public:
 	netvar("DT_BasePlayer", "m_iObserverMode", get_observer_mode, int);
 	netvar("DT_BasePlayer", "m_hObserverTarget", get_observer_target_handle, uintptr_t);
 	netvar("DT_PlayerResource", "m_iPing", get_ping, int);
+
+	c_color get_team_color() {
+		c_color color;
+		gmod_lua_interface glua(interfaces::lua_shared->get_lua_interface((int)e_special::glob));
+
+		glua->push_special((int)e_special::glob);
+
+		glua->push_special((int)e_special::glob);
+		glua->get_field(-1, "team");
+		glua->get_field(-1, "GetColor");
+		glua->push_number(this->get_team_num());
+		glua->call(1, 1);
+
+		auto color_object = glua->get_object(-1);
+		auto r = color_object->get_member_int("r");
+		auto g = color_object->get_member_int("g");
+		auto b = color_object->get_member_int("b");
+
+		color.init(r, g, b);
+		return color;
+	}
+
+	std::string get_user_group() {
+		gmod_lua_interface lua(interfaces::lua_shared->get_lua_interface((int)e_special::glob));
+
+		push_entity();
+		lua->get_field(-1, "GetUserGroup");
+		lua->push(-2);
+		lua->call(1, 1);
+
+		return lua->get_string();
+	}
+
+	bool is_admin() {
+		auto user_group = get_user_group();
+		std::transform(user_group.begin(), user_group.end(), user_group.begin(), [](char c) { return std::tolower(c); });
+		return user_group.contains("admin") || user_group.contains("moder") ||
+			user_group.contains("root") || user_group.contains("king") || user_group.contains("owner");
+	}
+
+	std::string get_name() const {
+		player_info_s info;
+		interfaces::engine->get_player_info(get_index(), &info);
+		return info.name;
+	}
+
+	c_base_player* get_observer_target() {
+		static auto function = memory::symbol_t<void* (__fastcall*)(void*)>({ { "40 53 48 83 EC 20 48 39 0D ? ? ? ? 48 8B D9 75 26" }, memory::client_module });
+		return (c_base_player*)function.ptr(this);
+	}
 };
 
 __forceinline c_base_player* get_local_player()

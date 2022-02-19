@@ -17,3 +17,5 @@
 #include "game/interfaces/gamemovement.hpp"
 #include "game/interfaces/movehelper.hpp"
 #include "game/interfaces/cinput.hpp"
+
+#include "game/entities/c_base_weapon.hpp"

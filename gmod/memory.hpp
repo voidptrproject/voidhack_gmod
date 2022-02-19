@@ -9,6 +9,7 @@
 #include <Windows.h>
 
 namespace memory {
+	struct address_t;
 	class module_t {
 		HMODULE handle;
 	public:
@@ -34,29 +35,10 @@ namespace memory {
 			return reinterpret_cast<std::uint8_t*>(get_handle() + get_nt_headers()->OptionalHeader.SizeOfImage);
 		}
 	};
-	template <typename _t> struct symbol_t {
-		module_t module;
-		_t ptr;
-
-		inline static symbol_t<_t> get_symbol(const module_t& module, std::string_view name) {
-			symbol_t<_t> symbol;
-			symbol.module = module;
-			symbol.ptr = (_t)GetProcAddress(module.get_handle(), name.data());
-			return symbol;
-		}
-
-		inline static symbol_t<_t> get_symbol(const module_t& module, const jm::memory_signature& sig) {
-			symbol_t<_t> symbol;
-			symbol.module = module;
-		}
-
-		inline _t operator->() { return ptr; }
-	};
 
 	static inline constexpr auto relative_to_absolute(uintptr_t address, int offset, int instruction_size) noexcept {
 		return address + instruction_size + (*(int*)(address + offset));
 	}
-
 	struct address_t {
 		address_t(uintptr_t addr) : address(addr) {}
 		address_t(const jm::memory_signature& sig, const module_t& mod) {
@@ -77,6 +59,25 @@ namespace memory {
 		operator uintptr_t() const { return address; }
 
 		uintptr_t address;
+	};
+	template <typename _t> struct symbol_t {
+		module_t module;
+		_t ptr;
+
+		symbol_t() {}
+		symbol_t(const address_t& addr) {
+			module = addr.get_module();
+			ptr = (_t)(uintptr_t)addr;
+		}
+
+		inline static symbol_t<_t> get_symbol(const module_t& module, std::string_view name) {
+			symbol_t<_t> symbol;
+			symbol.module = module;
+			symbol.ptr = (_t)GetProcAddress(module.get_handle(), name.data());
+			return symbol;
+		}
+
+		inline _t operator->() { return ptr; }
 	};
 
 	// Modules ------

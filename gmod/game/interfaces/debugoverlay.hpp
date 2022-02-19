@@ -28,3 +28,5 @@ public:
 	/*17*/	virtual void* add_line_overlay_alpha(c_vector const&, c_vector const&, int, int, int, int, bool, float) = 0;
 	/*18*/	virtual void* add_box_overlay2(c_vector const&, c_vector const&, c_vector const&, q_angle const&, c_color const&, c_color const&, float) = 0;
 };
+
+INITIALIZE_INTERFACE(debug_overlay, i_debug_overlay, memory::engine_module, "VDebugOverlay003");
