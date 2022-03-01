@@ -99,6 +99,10 @@ public:
 	__forceinline bool equal(c_base_entity* other) const {
 		return other->get_index() == this->get_index();
 	}
+
+	int get_health_procentage() {
+		return 100 / get_max_health() * get_health();
+	}
 };
 
 __forceinline c_base_entity* get_entity_by_index(const int i)

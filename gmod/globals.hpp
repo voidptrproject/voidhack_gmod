@@ -2,51 +2,59 @@
 
 #include <string>
 #include <string_view>
-#include <any>
+#include <variant>
 #include <algorithm>
 #include <map>
 #include <filesystem>
 #include <codecvt>
+#include <assert.h>
+
+#include "game/misc/color.hpp"
 
 namespace internal {
-	struct variables_storage_t {
-		std::map<std::string, std::any> data;
+	enum class EVaribleType {
+		None = -1,
+		Number,
+		Boolean,
+		FloatNumber,
+		String,
+		Color
+	};
 
-		inline auto& operator[](std::string_view name) { return data[name.data()]; }
-		inline auto& operator[](const std::string& name) { return data[name]; }
+	struct VariableStorageUnit;
+	using VariablesStorage_t = std::vector<VariableStorageUnit>;
+	VariablesStorage_t& GetSettingsStorage();
 
-		inline bool exists(const std::string_view name) { return data.contains(name.data()); }
+	struct VariableStorageUnit {
+		EVaribleType variableType;
+		std::string variableName;
+		std::variant<c_color*, bool*, int*, float*, std::string*> variableData;
 	};
 }
 
 namespace settings {
-	namespace internal {
-		::internal::variables_storage_t& get_settings_storage();
+	template<typename T> inline T& GetVariable(std::string_view name) {
+		auto var = std::find_if(internal::GetSettingsStorage().begin(), internal::GetSettingsStorage().end(), 
+			[&](internal::VariableStorageUnit& u) { return u.variableName == name; });
+		assert(var != internal::GetSettingsStorage().end());
+		return *std::get<T*>(var->variableData);
+	}
+	template<typename T> inline T* GetVariablePointer(std::string_view name) {
+		auto var = std::find_if(internal::GetSettingsStorage().begin(), internal::GetSettingsStorage().end(),
+			[&](internal::VariableStorageUnit& u) { return u.variableName == name; });
+		assert(var != internal::GetSettingsStorage().end());
+		return std::get<T*>(var->variableData);
 	}
 
-	template<typename t> inline t& get(std::string_view name, const t& new_val = t()) {
-		if (!internal::get_settings_storage().exists(name))
-			internal::get_settings_storage()[name] = new_val;
-		return *std::any_cast<t>(&internal::get_settings_storage()[name]);
-	}
-	template<typename t> inline void set(std::string_view name, const t& val) {
-		internal::get_settings_storage()[name] = val;
-	}
+	std::string SaveSettingsToString();
+	void SaveSettingsToStream(std::ostream& stream);
+
+	void LoadSettingsFromString(std::string_view data);
+	void LoadSettingsFromStream(std::istream& stream);
 }
 
 namespace globals {
-	namespace internal {
-		::internal::variables_storage_t& get_globals_storage();
-	}
-
-	template<typename t> inline t& get(std::string_view name, const t& new_val = t()) {
-		if (!internal::get_globals_storage().exists(name))
-			internal::get_globals_storage()[name] = new_val;
-		return *std::any_cast<t>(&internal::get_globals_storage()[name]);
-	}
-	template<typename t> inline void set(std::string_view name, const t& val) {
-		internal::get_globals_storage()[name] = val;
-	}
+	
 }
 
 namespace env {

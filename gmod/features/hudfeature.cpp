@@ -1,6 +1,6 @@
 #include "features.hpp"
 
-#include "../game/entities/c_base_player.hpp"
+#include <format>
 
 struct observer_t {
 	std::string observer_name;
@@ -21,7 +21,7 @@ inline std::string current_time() {
 	return buf;
 }
 
-static void hud_render_function(render::render_data_t& data) {
+void hud_render_function(render::render_data_t& data) {
 	if (interfaces::engine->is_in_game()) {
 		std::string server_ip = "localhost";
 		float ping_outgoing, ping_ingoing = 0.f;
@@ -51,12 +51,12 @@ static void hud_render_function(render::render_data_t& data) {
 
 		ImGui::Begin("Observers");
 		for (auto& o : observers)
-			ImGui::CopiedText("%s -> %s [%i]", o.observer_name, o.target_name, o.observing_mode);
+			ImGui::CopiedText("%s -> %s [%i]", o.observer_name.c_str(), o.target_name.c_str(), o.observing_mode);
 		ImGui::End();
 	}
 }
 
-static bool hud_render_create_move(float f, c_user_cmd* cmd) {
+bool hud_render_create_move(float f, c_user_cmd* cmd) {
 	last_cmd = *cmd;
 	map_name = interfaces::engine->get_level_name();
 
@@ -65,6 +65,9 @@ static bool hud_render_create_move(float f, c_user_cmd* cmd) {
 		auto entity = get_player_by_index(i);
 		if (!entity || !entity->is_player()) continue;
 		if (entity->get_observer_mode() == 0) continue;
+
+		if (entity->get_observer_target()->get_index() == get_local_player()->get_index())
+			notifymanager::AddNotify(std::format("\"{}\" observing you", entity->get_name()));
 
 		observer_t tmp;
 		tmp.observer_name = entity->get_name();
@@ -77,5 +80,7 @@ static bool hud_render_create_move(float f, c_user_cmd* cmd) {
 	return false;
 }
 
-static inline render::render_handler hud_render(hud_render_function);
-static inline features::feature hud_feature(features::pass_callback, hud_render_create_move);
+static inline features::feature hud_feature([]() {
+	hooks::add_listener(hooks::e_hook_type::create_move, hud_render_create_move);
+	render::add_render_handler(hud_render_function);
+});

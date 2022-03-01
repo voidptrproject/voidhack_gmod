@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "../globals.hpp"
+#include "../hooks.hpp"
 
 #include <imgui_internal.h>
 
@@ -102,19 +103,29 @@ void esp_render_function(render::render_data_t& data) {
 		);
 		data.draw_list->AddTextOutlined(ImGui::GetFont(),
 			{ i.box.center().x - render::calculate_text_size(i.player_data.value().user_group).x / 2,
-			  i.box.min.y - 1 - name_size.y * 2 },
+			  i.box.max.y},
 			i.player_data.value().is_admin ? colors::red_color : colors::white_color, colors::black_color, i.player_data.value().user_group.c_str()
 		);
+
 		data.draw_list->AddRect(i.box.min, i.box.max, i.main_color, 0.f, 0, 3.f);
 		data.draw_list->AddRect(i.box.min - ImVec2(2.f, 2.f), i.box.max + ImVec2(2.f, 2.f), colors::black_color);
 		data.draw_list->AddRect(i.box.min + ImVec2(2.f, 2.f), i.box.max - ImVec2(2.f, 2.f), colors::black_color);
+
+		data.draw_list->AddRectFilledMultiColor({ i.box.max.x + 3, i.box.min.y + ((i.box.max.y - i.box.min.y) * ((100.f - i.health) / 100.f))}, 
+			{i.box.max.x + 6, i.box.max.y}, colors::blue_color, colors::blue_color, colors::green_color, colors::green_color);
 	}
 	//esp_render_objects.clear();
 }
 
 void esp_update(const int stage) {
-	if (stage != (int)e_frame_stage::frame_start || !settings::get<bool>("esp"))
+	if (stage != (int)e_frame_stage::frame_start || !settings::GetVariable<bool>("Esp")) {
+		if (stage == (int)e_frame_stage::frame_start) {
+			render_mutex.lock();
+			esp_render_objects.clear();
+			render_mutex.unlock();
+		}
 		return;
+	}
 
 	render_mutex.lock();
 	esp_render_objects.clear();
@@ -131,7 +142,7 @@ void esp_update(const int stage) {
 		if (!get_entity_box(entity, render_obj))
 			continue;
 		
-		render_obj.health = entity->get_health();
+		render_obj.health = std::clamp(entity->get_health_procentage(), 0, 100);
 		render_obj.main_color = entity->as_player()->get_team_color();
 		render_obj.name = entity->as_player()->get_name();
 		
@@ -149,5 +160,7 @@ void esp_update(const int stage) {
 	render_mutex.unlock();
 }
 
-static inline render::render_handler esp_render(esp_render_function);
-static inline features::feature esp_feature(features::pass_callback, features::pass_callback, esp_update);
+static inline features::feature esp_feature([]() {
+	hooks::add_listener(hooks::e_hook_type::frame_stage_notify, esp_update);
+	render::add_render_handler(esp_render_function);
+});

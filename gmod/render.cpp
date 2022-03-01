@@ -8,6 +8,7 @@
 
 #include "globals.hpp"
 #include "input.hpp"
+#include "menu/menu.hpp"
 
 static inline IDirect3DDevice9* device;
 
@@ -17,7 +18,7 @@ inline auto& render_context() {
 }
 
 inline auto& render_handlers() {
-	static std::vector<render::render_handler*> _render_handlers;
+	static std::vector<render::render_function_t> _render_handlers;
 	return _render_handlers;
 }
 
@@ -26,15 +27,9 @@ render::internal::render_context_t& render::internal::get_render_context() {
 }
 
 bool context_valid() {
-	//return render_context.main_draw_list != nullptr;
+	//return render_context.main_draw_list != nullptr;				TODO: REMOVE THIS
 	return true;
 }
-
-inline static input::key_handler menu_key_handler("menu_open", VK_INSERT, [&](input::e_key_state state) {
-	auto& var = globals::get<bool>("menu_opened");
-	if (state == input::e_key_state::released)
-		var = !var;
-});
 
 struct override_render_state {
 	DWORD original_value;
@@ -52,11 +47,22 @@ struct override_render_state {
 
 void render::internal::render_hook(IDirect3DDevice9* dev, const memory::address_t& return_address) {
 	static std::once_flag once_flag; std::call_once(once_flag, [&]() {
+		ImGui::CreateContext();
+
 		if (auto hwnd = FindWindow(0, "Garry's Mod (x64)"); hwnd) {
-			ImGui::CreateContext();
 			ImGui_ImplWin32_Init(hwnd);
 			ImGui_ImplDX9_Init(dev);
 			ImGui::GetIO().IniFilename = "garrysmod\\cfg\\gmoduser_.txt";
+
+			static const ImWchar ranges[] = {
+				0x0020, 0x00FF, // Basic Latin + Latin Supplement
+				0x0400, 0x044F, // Cyrillic
+				0,
+			};
+
+			//ImGui::StyleColorsDark();
+
+			ImGui::GetIO().Fonts->AddFontFromFileTTF("C:/Windows/Fonts/L_10646.ttf", 18.f, 0, ranges);
 		}
 	});
 
@@ -70,36 +76,35 @@ void render::internal::render_hook(IDirect3DDevice9* dev, const memory::address_
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
+	notifymanager::GetNotifyManager().UpdateAndRender();
+
+	menu::render_menu();
+
 	shared_render_data.draw_list = ImGui::GetOverlayDrawList();
 	notify_render_handlers(shared_render_data);
-
-	if (globals::get<bool>("menu_opened")) {
-		ImGui::GetIO().MouseDrawCursor = true;
-
-		ImGui::Begin("TESTWINDOW");
-
-		ImGui::InputInt("TESTINPUT", &settings::get<int>("testint"));
-		ImGui::Checkbox("Bhop", &settings::get<bool>("bhop"));
-		ImGui::Checkbox("ESP", &settings::get<bool>("esp"));
-
-		ImGui::End();
-	} else {
-		ImGui::GetIO().MouseDrawCursor = false;
-	}
 
 	ImGui::EndFrame();
 	ImGui::Render();
 	ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
 }
 
-void render::internal::add_render_handler(render_handler* handler) {
+void render::add_render_handler(render::render_function_t handler) {
 	render_handlers().push_back(handler);
 }
 
 void render::internal::notify_render_handlers(render_data_t& context) {
-	std::for_each(render_handlers().begin(), render_handlers().end(), [&](render_handler* h) { if (h) h->render_function(context); });
+	std::for_each(render_handlers().begin(), render_handlers().end(), [&](render_function_t h) { if (h) h(context); });
 }
 
 IDirect3DDevice9* render::get_device() {
 	return device;
+}
+
+notifymanager::NotifyManager& notifymanager::GetNotifyManager() {
+	static NotifyManager nmgr;
+	return nmgr;
+}
+
+void notifymanager::AddNotify(std::string_view data) {
+	GetNotifyManager().AddNotify({data, data});
 }

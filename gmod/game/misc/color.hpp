@@ -3,11 +3,13 @@
 #include <array>
 #include <imgui.h>
 
-#include "../../globals.hpp"
-
 class c_color {
 public:
-    float r{}, g{}, b{}, a{};
+    std::array<float, 4> data;
+    inline float& r() { return data[0]; }
+    inline float& g() { return data[1]; }
+    inline float& b() { return data[2]; }
+    inline float& a() { return data[3]; }
 
     c_color();
     c_color(const c_color& c);
@@ -20,7 +22,6 @@ public:
 
     ~c_color() = default;
 
-    float* get_base();
     void init(float r, float g, float b, float a = 255.f);
 
     c_color& operator=(const c_color& left) = default;
@@ -32,21 +33,17 @@ public:
     [[nodiscard]] std::array<float, 4> get_clamped() const;
 
     operator ImU32() const { return get_u32(); }
-
-    static inline c_color from_settings(std::string_view name) {
-        return c_color(settings::get<std::array<float, 4>>(name));
-    }
 };
 
 inline c_color::c_color() = default;
 
 
 inline c_color::c_color(const c_color & c) {
-    init(c.r, c.g, c.b, c.a);
+    init(c.data[0], c.data[1], c.data[2], c.data[3]);
 }
 
 inline c_color::c_color(const c_color && c) noexcept {
-    init(c.r, c.g, c.b, c.a);
+    init(c.data[0], c.data[1], c.data[2], c.data[3]);
 }
 
 inline c_color::c_color(const float r, const float g, const float b, const float a) {
@@ -73,9 +70,9 @@ inline c_color color_from_hsv(int h, int s, int v) {
     c_color out;
 
     if (s <= 0.0) {       // < is bogus, just shuts up warnings
-        out.r = v * 255.f;
-        out.g = v * 255.f;
-        out.b = v * 255.f;
+        out.r() = v * 255.f;
+        out.g() = v * 255.f;
+        out.b() = v * 255.f;
         return out;
     }
     hh = h;
@@ -89,59 +86,55 @@ inline c_color color_from_hsv(int h, int s, int v) {
 
     switch (i) {
     case 0:
-        out.r = v;
-        out.g = t;
-        out.b = p;
+        out.r() = v;
+        out.g() = t;
+        out.b() = p;
         break;
     case 1:
-        out.r = q;
-        out.g = v;
-        out.b = p;
+        out.r() = q;
+        out.g() = v;
+        out.b() = p;
         break;
     case 2:
-        out.r = p;
-        out.g = v;
-        out.b = t;
+        out.r() = p;
+        out.g() = v;
+        out.b() = t;
         break;
 
     case 3:
-        out.r = p;
-        out.g = q;
-        out.b = v;
+        out.r() = p;
+        out.g() = q;
+        out.b() = v;
         break;
     case 4:
-        out.r = t;
-        out.g = p;
-        out.b = v;
+        out.r() = t;
+        out.g() = p;
+        out.b() = v;
         break;
     case 5:
     default:
-        out.r = v;
-        out.g = p;
-        out.b = q;
+        out.r() = v;
+        out.g() = p;
+        out.b() = q;
         break;
     }
 
-    out.r *= 255.f;
-    out.g *= 255.f;
-    out.b *= 255.f;
-    out.a = 255.f;
+    out.r() *= 255.f;
+    out.g() *= 255.f;
+    out.b() *= 255.f;
+    out.a() = 255.f;
     return out;
 }
 
-inline float* c_color::get_base() {
-    return reinterpret_cast<float*>(this); //it will reinterpret as float[4] pointer
-}
-
 inline void c_color::init(const float r, const float g, const float b, const float a) {
-    this->r = r;
-    this->g = g;
-    this->b = b;
-    this->a = a;
+    this->r() = r;
+    this->g() = g;
+    this->b() = b;
+    this->a() = a;
 }
 
 inline bool c_color::operator==(const c_color & left) const {
-    return r == left.r && g == left.g && b == left.b && a == left.a;
+    return data[0] == left.data[0] && data[1] == left.data[1] && data[2] == left.data[2] && data[3] == left.data[3];
 }
 
 inline ImU32 c_color::get_u32() const {
@@ -149,11 +142,11 @@ inline ImU32 c_color::get_u32() const {
 }
 
 inline ImVec4 c_color::get_vec4() const {
-    return { r / 255.f, g / 255.f, b / 255.f, a / 255.f };
+    return { data[0] / 255.f, data[1] / 255.f, data[2] / 255.f, data[3] / 255.f };
 }
 
 inline std::array<float, 4> c_color::get_clamped() const {
-    return { r / 255.f, g / 255.f, b / 255.f, a / 255.f };
+    return { data[0] / 255.f, data[1] / 255.f, data[2] / 255.f, data[3] / 255.f };
 }
 
 
