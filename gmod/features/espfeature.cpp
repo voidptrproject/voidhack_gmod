@@ -19,7 +19,7 @@ struct esp_box_t {
 };
 
 struct esp_player_render_data_t {
-	std::string user_group;
+	std::string user_group, team_name;
 	bool is_admin;
 };
 
@@ -94,25 +94,39 @@ void esp_render_function(render::render_data_t& data) {
 	std::lock_guard lock(render_mutex);
 
 	for (auto& i : esp_render_objects) {
-		auto name_size = render::calculate_text_size(i.name);
+		auto drawFlags = settings::GetVariable<int>("EspVisualSettings");
+		std::array<float, 4> lastTextPositions = { i.box.min.y, i.box.min.y, i.box.max.y, i.box.min.y };
 
-		data.draw_list->AddTextOutlined(ImGui::GetFont(),
-			{ i.box.center().x - name_size.x / 2,
-			  i.box.min.y - name_size.y},
-			i.name_color, colors::black_color, i.name.c_str()
-		);
-		data.draw_list->AddTextOutlined(ImGui::GetFont(),
-			{ i.box.center().x - render::calculate_text_size(i.player_data.value().user_group).x / 2,
-			  i.box.max.y},
-			i.player_data.value().is_admin ? colors::red_color : colors::white_color, colors::black_color, i.player_data.value().user_group.c_str()
-		);
+		if (drawFlags & settings::EVisualSettings_Name) {
+			auto namePosition = ImVec2{ i.box.center().x - render::calculate_text_size(i.name).x / 2,
+										lastTextPositions[0] - render::calculate_text_size(i.name).y };
+			data.draw_list->AddTextOutlined(ImGui::GetFont(), namePosition, i.name_color, colors::black_color, i.name.c_str());
+			lastTextPositions[0] = namePosition.y;
+		}
+		if (drawFlags & settings::EVisualSettings_TeamName) {
+			auto teamNamePosition = ImVec2{ i.box.center().x - render::calculate_text_size(i.player_data.value().team_name).x / 2.f,
+											lastTextPositions[2]};
+			data.draw_list->AddTextOutlined(ImGui::GetFont(), teamNamePosition, i.main_color, colors::black_color, i.player_data.value().team_name.c_str());
+			lastTextPositions[2] = teamNamePosition.y + render::calculate_text_size(i.player_data.value().team_name).y / 2.f;
+		}
+		if (drawFlags & settings::EVisualSettings_UserGroup) {
+			auto userGroupPosition = ImVec2{ i.box.center().x - render::calculate_text_size(i.player_data.value().user_group).x / 2.f,
+											 lastTextPositions[2] + 1.f };
+			data.draw_list->AddTextOutlined(ImGui::GetFont(), userGroupPosition, i.player_data.value().is_admin ? colors::red_color : colors::white_color,
+											colors::black_color, i.player_data.value().user_group.c_str());
+			lastTextPositions[2] = userGroupPosition.y;
+		}
+		
+		if (drawFlags & settings::EVisualSettings_Box) {
+			data.draw_list->AddRect(i.box.min, i.box.max, i.main_color, 0.f, 0, 3.f);
+			data.draw_list->AddRect(i.box.min - ImVec2(2.f, 2.f), i.box.max + ImVec2(2.f, 2.f), colors::black_color);
+			data.draw_list->AddRect(i.box.min + ImVec2(2.f, 2.f), i.box.max - ImVec2(2.f, 2.f), colors::black_color);
+		}
 
-		data.draw_list->AddRect(i.box.min, i.box.max, i.main_color, 0.f, 0, 3.f);
-		data.draw_list->AddRect(i.box.min - ImVec2(2.f, 2.f), i.box.max + ImVec2(2.f, 2.f), colors::black_color);
-		data.draw_list->AddRect(i.box.min + ImVec2(2.f, 2.f), i.box.max - ImVec2(2.f, 2.f), colors::black_color);
-
-		data.draw_list->AddRectFilledMultiColor({ i.box.max.x + 3, i.box.min.y + ((i.box.max.y - i.box.min.y) * ((100.f - i.health) / 100.f))}, 
-			{i.box.max.x + 6, i.box.max.y}, colors::blue_color, colors::blue_color, colors::green_color, colors::green_color);
+		if (drawFlags & settings::EVisualSettings_HealthBar) {
+			data.draw_list->AddRectFilledMultiColor({ i.box.max.x + 3, i.box.min.y + ((i.box.max.y - i.box.min.y) * ((100.f - i.health) / 100.f)) },
+				{ i.box.max.x + 6, i.box.max.y }, colors::blue_color, colors::blue_color, colors::green_color, colors::green_color);
+		}
 	}
 	//esp_render_objects.clear();
 }
@@ -149,6 +163,7 @@ void esp_update(const int stage) {
 		esp_player_render_data_t player_data;
 		player_data.user_group = entity->as_player()->get_user_group();
 		player_data.is_admin = entity->as_player()->is_admin();
+		player_data.team_name = entity->as_player()->get_team_name();
 
 		render_obj.name_color = colors::white_color;
 		render_obj.player_data.emplace(std::move(player_data));

@@ -33,13 +33,13 @@ namespace internal {
 }
 
 namespace settings {
-	template<typename T> inline T& GetVariable(std::string_view name) {
+	template<typename T = bool> inline T& GetVariable(std::string_view name) {
 		auto var = std::find_if(internal::GetSettingsStorage().begin(), internal::GetSettingsStorage().end(), 
 			[&](internal::VariableStorageUnit& u) { return u.variableName == name; });
 		assert(var != internal::GetSettingsStorage().end());
 		return *std::get<T*>(var->variableData);
 	}
-	template<typename T> inline T* GetVariablePointer(std::string_view name) {
+	template<typename T = bool> inline T* GetVariablePointer(std::string_view name) {
 		auto var = std::find_if(internal::GetSettingsStorage().begin(), internal::GetSettingsStorage().end(),
 			[&](internal::VariableStorageUnit& u) { return u.variableName == name; });
 		assert(var != internal::GetSettingsStorage().end());
@@ -51,6 +51,15 @@ namespace settings {
 
 	void LoadSettingsFromString(std::string_view data);
 	void LoadSettingsFromStream(std::istream& stream);
+
+	enum EVisualSettings {
+		EVisualSettings_None = (0 << 0),
+		EVisualSettings_Box = (1 << 0),
+		EVisualSettings_Name = (1 << 1),
+		EVisualSettings_HealthBar = (1 << 2),
+		EVisualSettings_UserGroup = (1 << 3),
+		EVisualSettings_TeamName = (1 << 4),
+	};
 }
 
 namespace globals {

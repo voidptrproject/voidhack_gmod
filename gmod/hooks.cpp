@@ -33,6 +33,11 @@ inline auto& get_listeners() {
 	return hook_listeners;
 }
 
+inline auto& get_custom_hooks() {
+	static std::vector<hooks::custom_hook_t> custom_hooks;
+	return custom_hooks;
+}
+
 template <typename func> struct hook_t {
 	hook_t() {}
 	hook_t(func new_function) : hook_fn(new_function) {}
@@ -50,7 +55,7 @@ static inline hook_t<void(__fastcall*)(float, bool)> cl_move_hook([](float a, bo
 });
 
 static inline long end_scane_hooked_fn(IDirect3DDevice9* device);
-static inline hook_t<long(__stdcall*)(IDirect3DDevice9*)> end_scene_hook(end_scane_hooked_fn);
+static inline hook_t<long(*)(IDirect3DDevice9*)> end_scene_hook(end_scane_hooked_fn);
 inline long end_scane_hooked_fn(IDirect3DDevice9* device) {
 	render::internal::render_hook(device, (uintptr_t)_ReturnAddress());
 	return end_scene_hook.original(device);
@@ -120,8 +125,13 @@ static inline hook_t<void(__fastcall*)(chl_client*, int)> frame_stage_notify_hoo
 	return frame_stage_notify_hook.original(client, frame_stage);});
 
 void hooks::initialize_hooks() {
+	#ifdef _DEBUG
 	assert(MH_Initialize() == MH_OK);
 	assert(kiero::init(kiero::RenderType::D3D9) == kiero::Status::Success);
+	#else
+	MH_Initialize();
+	kiero::init(kiero::RenderType::D3D9);
+	#endif
 
 	original_wndproc = (WNDPROC)SetWindowLongPtr(FindWindowW(0, L"Garry's Mod (x64)"), GWLP_WNDPROC, (LONG_PTR)hooked_wndproc);
 	cl_move_hook.hook(memory::address_t({ "E8 ? ? ? ? FF 15 ? ? ? ? F2 0F 10 0D ? ? ? ? 85 FF" }, memory::engine_module).absolute(0x1, 0x5));
@@ -140,4 +150,15 @@ void hooks::shutdown_hooks() {
 
 void hooks::add_listener(e_hook_type hook, void* listener) {
 	get_listeners()[hook].push_back(listener);
+}
+
+hooks::custom_hook_t& hooks::create_hook(void* target, void* detour) {
+	for (auto& i : get_custom_hooks()) {
+		if ((uintptr_t)i.original == (uintptr_t)target)
+			return i;
+	}
+	auto& hook = get_custom_hooks().emplace_back(custom_hook_t(detour));
+	MH_CreateHook((LPVOID)target, (LPVOID)hook.hook, (LPVOID*)&hook.original); 
+	MH_EnableHook((LPVOID)target);
+	return hook;
 }

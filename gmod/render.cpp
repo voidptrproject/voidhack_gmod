@@ -67,7 +67,8 @@ void render::internal::render_hook(IDirect3DDevice9* dev, const memory::address_
 	});
 
 	device = dev;
-	if (!return_address.get_module().get_name().contains("gameoverlay")) return;
+
+	if (!return_address.get_module().get_name().find("gameoverlay") != return_address.get_module().get_name().npos) return;
 
 	render_data_t shared_render_data;
 	override_render_state srgb_override(dev, D3DRS_SRGBWRITEENABLE, 0);
@@ -106,5 +107,7 @@ notifymanager::NotifyManager& notifymanager::GetNotifyManager() {
 }
 
 void notifymanager::AddNotify(std::string_view data) {
+	GetNotifyManager().GetMutex().lock();
 	GetNotifyManager().AddNotify({data, data});
+	GetNotifyManager().GetMutex().unlock();
 }

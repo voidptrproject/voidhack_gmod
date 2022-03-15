@@ -69,6 +69,16 @@ public:
 		return color;
 	}
 
+	std::string get_team_name() {
+		gmod_lua_interface glua(interfaces::lua_shared->get_lua_interface((int)e_special::glob));
+		glua->push_special((int)e_special::glob);
+		glua->get_field(-1, "team");
+		glua->get_field(-1, "GetName");
+		glua->push_number(this->get_team_num());
+		glua->call(1, 1);
+		return glua->get_string();
+	}
+
 	std::string get_user_group() {
 		gmod_lua_interface lua(interfaces::lua_shared->get_lua_interface((int)e_special::glob));
 
@@ -81,10 +91,13 @@ public:
 	}
 
 	bool is_admin() {
+		auto string_contains = [](const std::string& str, const std::string& substr) {
+			return str.find(substr) != std::string::npos;
+		};
 		auto user_group = get_user_group();
 		std::transform(user_group.begin(), user_group.end(), user_group.begin(), [](char c) { return std::tolower(c); });
-		return user_group.contains("admin") || user_group.contains("moder") ||
-			user_group.contains("root") || user_group.contains("king") || user_group.contains("owner");
+		return string_contains(user_group, "admin") || string_contains(user_group, "moder") ||
+			string_contains(user_group, "root") || string_contains(user_group, "king") || string_contains(user_group, "owner");
 	}
 
 	std::string get_name() const {

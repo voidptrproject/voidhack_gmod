@@ -7,6 +7,8 @@
 #include "../interfaces.hpp"
 #include "../render.hpp"
 #include "../hooks.hpp"
+#include "../globals.hpp"
+#include "../input.hpp"
 
 namespace features {
 	struct feature;
@@ -23,6 +25,4 @@ namespace features {
 			get_features_interface().add_feature(this);
 		}
 	};
-
-
 }

@@ -68,7 +68,11 @@ template<typename VarType> struct Variable {
 
 namespace Variables {
 	SETTINGS_VAR(Esp, bool, false);
+	SETTINGS_VAR(EspVisualSettings, int, 0);
+
 	SETTINGS_VAR(BunnyHop, bool, false);
+	SETTINGS_VAR(ObserversHUD, bool, false);
+	SETTINGS_VAR(InformationHUD, bool, false);
 }
 
 std::string settings::SaveSettingsToString() {

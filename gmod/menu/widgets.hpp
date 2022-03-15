@@ -74,5 +74,12 @@ struct TabData_t {
     std::string name;
     bool state = false;
     std::function<void()> drawFunction;
-    float animationState = 1.f;
+    float animationState = 0.f;
 };
+
+inline void TabHeader(std::string_view name) {
+    auto headerTextSize = ImGui::CalcTextSize(name.data());
+    ImGui::SetCursorPosX(ImGui::GetWindowSize().x * 0.5f - headerTextSize.x * 0.5f);
+    ImGui::Text(name.data());
+    ImGui::Separator();
+}

@@ -5,6 +5,7 @@
 #include <d3d9.h>
 #include <functional>
 #include <string_view>
+#include <mutex>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -46,14 +47,17 @@ namespace notifymanager {
 
 	class NotifyManager {
 		std::vector<Notify_t> notifies;
+		std::mutex notifyMutex;
 
 		ImVec2 getNotifySize() { return { ImGui::GetIO().DisplaySize.x / 6.f, 20.f }; }
 	public:
 		NotifyManager() {}
 
+		auto& GetMutex() { return notifyMutex; }
 		void AddNotify(const Notify_t& notify) { notifies.push_back(notify); }
 
 		void UpdateAndRender() {
+			std::lock_guard g(notifyMutex);
 			if (notifies.empty())
 				return;
 

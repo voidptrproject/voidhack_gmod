@@ -13,8 +13,8 @@ enum class EMenuState {
 };
 
 struct MenuContext {
-	EMenuState state;
-	float fadeAnimation;
+	EMenuState state = EMenuState::Closed;
+	float fadeAnimation = 0.f;
 };
 
 inline auto& GetMenuContext() {
@@ -81,7 +81,7 @@ void menu::InitializeMenu() {
 	hooks::add_listener(hooks::e_hook_type::lock_cursor, LockCursorHandler);
 }
 
-inline static input::KeyHandler MenuKeyHandler("MenuOpen", VK_INSERT, [&](input::EKeyState state) {
+inline static input::key_handler MenuKeyHandler("MenuOpen", VK_INSERT, [&](input::EKeyState state) {
 	if (state == input::EKeyState::Released)
 		GetMenuContext().state = GetMenuContext().state == EMenuState::Closed ? EMenuState::Opened : EMenuState::Closed;
 });
