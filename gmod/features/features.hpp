@@ -9,6 +9,7 @@
 #include "../hooks.hpp"
 #include "../globals.hpp"
 #include "../input.hpp"
+#include "../menu/menu.hpp"
 
 namespace features {
 	struct feature;

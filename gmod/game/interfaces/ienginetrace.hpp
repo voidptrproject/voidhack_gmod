@@ -244,3 +244,15 @@ public:
 };
 
 INITIALIZE_INTERFACE(engine_trace, i_engine_trace, memory::engine_module, "EngineTraceClient003");
+
+namespace utils{
+	inline void trace_ray(trace_t& tr, const c_vector& start, const c_vector& end, i_trace_filter* filter, int mask = MASK_SHOT) {
+		tr.startpos = start;
+		tr.endpos = end;
+		
+		ray_t ray;
+		ray.init(start, end);
+
+		interfaces::engine_trace->trace_ray(ray, mask, filter, &tr);
+	}
+}

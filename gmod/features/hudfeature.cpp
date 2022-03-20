@@ -85,7 +85,17 @@ bool hud_render_create_move(float f, c_user_cmd* cmd) {
 	return false;
 }
 
+
 static inline features::feature hud_feature([]() {
+	settings::CreateVariable("InformationHUD", false);
+	settings::CreateVariable("ObserversHUD", false);
+
+	menu::AddElementToCategory(menu::EMenuCategory_Misc, 
+		std::make_shared<menu::ToggleButtonElement>("Information HUD", "InformationHUD"));
+
+	menu::AddElementToCategory(menu::EMenuCategory_Misc, 
+		std::make_shared<menu::ToggleButtonElement>("Observers HUD", "ObserversHUD"));
+
 	hooks::add_listener(hooks::e_hook_type::create_move, hud_render_create_move);
 	render::add_render_handler(hud_render_function);
 });

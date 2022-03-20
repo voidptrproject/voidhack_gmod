@@ -1,18 +1,27 @@
 #pragma once
 
-#include "widgets.hpp"
+#include "menu.hpp"
 #include "../globals.hpp"
 
 #include <imgui_stdlib.h>
 
 #include <fstream>
 
+using namespace menu;
+
+void RenderContentForCategory(EMenuCategory cat) {
+    for (auto& i : GetElementsForCategory(cat)) {
+        i->Render();
+    }
+}
+
 void AimBotTab() {
     using namespace ImGui;
 
     Begin("AimBot##SKEETCRACK", 0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize);
-
     TabHeader("AimBot");
+
+    RenderContentForCategory(EMenuCategory_AimBot);
 
     End();
 }
@@ -21,20 +30,9 @@ void EspTab() {
     using namespace ImGui;
 
     Begin("ESP##SKEETCRACK", 0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize);
-
     TabHeader("ESP");
 
-    ToggleButton("ESP##ESPENABLED", settings::GetVariablePointer<bool>("Esp"));
-    if (BeginPopupContextItem(NULL, ImGuiPopupFlags_MouseButtonRight)) {
-        BeginGroup();
-        CheckboxFlags("Box##ESPBOX", settings::GetVariablePointer<int>("EspVisualSettings"), settings::EVisualSettings_Box);
-        CheckboxFlags("Health bar##ESPBOX", settings::GetVariablePointer<int>("EspVisualSettings"), settings::EVisualSettings_HealthBar);
-        CheckboxFlags("Name##ESPBOX", settings::GetVariablePointer<int>("EspVisualSettings"), settings::EVisualSettings_Name);
-        CheckboxFlags("Team name##ESPBOX", settings::GetVariablePointer<int>("EspVisualSettings"), settings::EVisualSettings_TeamName);
-        CheckboxFlags("User group##ESPBOX", settings::GetVariablePointer<int>("EspVisualSettings"), settings::EVisualSettings_UserGroup);
-        EndGroup();
-        EndPopup();
-    }
+    RenderContentForCategory(EMenuCategory_Esp);
 
     End();
 }
@@ -46,11 +44,7 @@ void MiscTab() {
 
     TabHeader("Misc");
 
-    ToggleButton("BunnyHop##BHOPENABLED", settings::GetVariablePointer<bool>("BunnyHop"));
-
-    Separator();
-    ToggleButton("Information HUD##INFOHUD", settings::GetVariablePointer<bool>("InformationHUD"));
-    ToggleButton("Observers HUD##INFOHUD", settings::GetVariablePointer<bool>("ObserversHUD"));
+    RenderContentForCategory(EMenuCategory_Misc);
 
     End();
 }
@@ -145,9 +139,13 @@ void SettingsTab() {
     End();
 }
 
-static inline std::vector<TabData_t> Tabs = {
-	{"AimBot", AimBotTab},
-	{"Esp", EspTab},
-	{"Misc", MiscTab},
-	{"Settings", SettingsTab}
-};
+inline auto& Tabs() {
+    static std::vector<TabData_t> Tabs = {
+    {"AimBot", AimBotTab, EMenuCategory_AimBot},
+    {"Esp", EspTab, EMenuCategory_Esp},
+    {"Misc", MiscTab, EMenuCategory_Misc},
+    {"Settings", SettingsTab, EMenuCategory_Settings}
+    };
+    return Tabs;
+}
+

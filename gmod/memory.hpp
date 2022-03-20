@@ -22,7 +22,7 @@ namespace memory {
 
 		inline std::string get_name() const {
 			char name[MAX_PATH]; GetModuleFileName(handle, name, MAX_PATH);
-			return name;
+			return std::string(name);
 		}
 		inline auto get_handle() const { return handle; }
 		inline auto get_dos_header() const { return reinterpret_cast<PIMAGE_DOS_HEADER>(handle); }

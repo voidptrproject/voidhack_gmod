@@ -7,6 +7,8 @@
 
 #include <Windows.h>
 
+using namespace menu;
+
 enum class EMenuState {
 	Closed,
 	Opened
@@ -50,7 +52,7 @@ void menu::render_menu() {
 		Begin("##TABS", (bool*)0, ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDecoration
 				| ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings);
 
-		for (auto& i : Tabs) {
+		for (auto& i : Tabs()) {
 			TabSelector(i.name.c_str(), &i.state);
 		}
 
@@ -58,7 +60,7 @@ void menu::render_menu() {
 		PopStyleColor();
 		PopStyleVar(4);
 
-		for (auto& i : Tabs) {
+		for (auto& i : Tabs()) {
 			if (i.state || i.animationState) {
 				ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImMin(i.animationState, GetMenuContext().fadeAnimation));
 				i.drawFunction();
@@ -78,10 +80,30 @@ bool LockCursorHandler() {
 }
 
 void menu::InitializeMenu() {
+	settings::CreateVariable<int>("OpenMenuKey", VK_INSERT);
+
 	hooks::add_listener(hooks::e_hook_type::lock_cursor, LockCursorHandler);
+	input::add_handler({"MenuOpen", settings::GetVariablePointer<int>("OpenMenuKey"), [&](input::EKeyState state) {
+		if (state == input::EKeyState::Released)
+			GetMenuContext().state = GetMenuContext().state == EMenuState::Closed ? EMenuState::Opened : EMenuState::Closed;
+		}}
+	);
 }
 
-inline static input::key_handler MenuKeyHandler("MenuOpen", VK_INSERT, [&](input::EKeyState state) {
-	if (state == input::EKeyState::Released)
-		GetMenuContext().state = GetMenuContext().state == EMenuState::Closed ? EMenuState::Opened : EMenuState::Closed;
-});
+void menu::AddElementToCategory(EMenuCategory category, std::shared_ptr<MenuElement> element) {
+	for (auto& i : Tabs()) {
+		if (i.tabContent.tabID == category) {
+			i.tabContent.elements.emplace_back(element);
+			std::sort(i.tabContent.elements.begin(), i.tabContent.elements.end(), [](decltype(i.tabContent.elements)::value_type& v1,
+				decltype(i.tabContent.elements)::value_type& v2) { return v1->GetId() < v2->GetId(); });
+		}
+	}
+}
+
+decltype(MenuTabContent::elements)& menu::GetElementsForCategory(EMenuCategory category) {
+	for (auto& i : Tabs()) {
+		if (i.tabContent.tabID == category) {
+			return i.tabContent.elements;
+		}
+	}
+}

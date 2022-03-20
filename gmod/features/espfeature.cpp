@@ -176,6 +176,24 @@ void esp_update(const int stage) {
 }
 
 static inline features::feature esp_feature([]() {
+	using namespace ImGui;
+
+	settings::CreateVariable("Esp", false);
+	settings::CreateVariable("EspVisualSettings", 0);
+
+	menu::ToggleButtonElement toggleButton("Esp", "Esp");
+	toggleButton.SetPopupFunction([]() {
+		BeginGroup();
+		CheckboxFlags("Box##ESPBOX", settings::GetVariablePointer<int>("EspVisualSettings"), settings::EVisualSettings_Box);
+		CheckboxFlags("Health bar##ESPBOX", settings::GetVariablePointer<int>("EspVisualSettings"), settings::EVisualSettings_HealthBar);
+		CheckboxFlags("Name##ESPBOX", settings::GetVariablePointer<int>("EspVisualSettings"), settings::EVisualSettings_Name);
+		CheckboxFlags("Team name##ESPBOX", settings::GetVariablePointer<int>("EspVisualSettings"), settings::EVisualSettings_TeamName);
+		CheckboxFlags("User group##ESPBOX", settings::GetVariablePointer<int>("EspVisualSettings"), settings::EVisualSettings_UserGroup);
+		EndGroup();
+	});
+
+	menu::AddElementToCategory(menu::EMenuCategory::EMenuCategory_Esp, std::make_shared<menu::ToggleButtonElement>(toggleButton));
+
 	hooks::add_listener(hooks::e_hook_type::frame_stage_notify, esp_update);
 	render::add_render_handler(esp_render_function);
 });

@@ -26,29 +26,14 @@
 
 #include "game/entities/c_base_player.hpp"
 
+using namespace hooks;
+
 static auto warning = memory::symbol_t<void(__cdecl*)(char const*, ...)>::get_symbol(memory::tier0_module, "Warning").ptr;
 
 inline auto& get_listeners() {
 	static std::map<hooks::e_hook_type, std::vector<void*>> hook_listeners;
 	return hook_listeners;
 }
-
-inline auto& get_custom_hooks() {
-	static std::vector<hooks::custom_hook_t> custom_hooks;
-	return custom_hooks;
-}
-
-template <typename func> struct hook_t {
-	hook_t() {}
-	hook_t(func new_function) : hook_fn(new_function) {}
-	~hook_t() {}
-
-	func original;
-	func hook_fn;
-
-	void hook(uintptr_t address) { MH_CreateHook((LPVOID)address, (LPVOID)hook_fn, (LPVOID*)&original); MH_EnableHook((LPVOID)address); }
-	void unhook() { MH_DisableHook((LPVOID)original); MH_RemoveHook((LPVOID)original); }
-};
 
 static inline hook_t<void(__fastcall*)(float, bool)> cl_move_hook([](float a, bool b) {
 	return cl_move_hook.original(a, b);
@@ -74,7 +59,7 @@ static inline hook_t<bool(__fastcall*)(i_client_mode*, float, c_user_cmd*)> crea
 	bool _return = false;
 	for (auto& i : get_listeners()[hooks::e_hook_type::create_move])
 		if (i)
-			if (!_return && ((hooks::create_move_listener)i)(frame_time, cmd))
+			if (((hooks::create_move_listener)i)(frame_time, cmd) && !_return)
 				_return = true;
 
 	create_move_hook.original(self, frame_time, cmd);
@@ -152,13 +137,12 @@ void hooks::add_listener(e_hook_type hook, void* listener) {
 	get_listeners()[hook].push_back(listener);
 }
 
-hooks::custom_hook_t& hooks::create_hook(void* target, void* detour) {
-	for (auto& i : get_custom_hooks()) {
-		if ((uintptr_t)i.original == (uintptr_t)target)
-			return i;
-	}
-	auto& hook = get_custom_hooks().emplace_back(custom_hook_t(detour));
-	MH_CreateHook((LPVOID)target, (LPVOID)hook.hook, (LPVOID*)&hook.original); 
-	MH_EnableHook((LPVOID)target);
-	return hook;
+void hooks::internal::hook(LPVOID address, LPVOID new_function, LPVOID* original) {
+	MH_CreateHook((LPVOID)address, (LPVOID)new_function, original); 
+	MH_EnableHook((LPVOID)address);
+}
+
+void hooks::internal::unhook(LPVOID address) {
+	MH_DisableHook((LPVOID)address); 
+	MH_RemoveHook((LPVOID)address);
 }

@@ -29,5 +29,9 @@ static bool movement_create_move(float frametime, c_user_cmd* cmd) {
 }
 
 static inline features::feature bunny_hop([](){
+	settings::CreateVariable("BunnyHop", false);
+
+	menu::AddElementToCategory(menu::EMenuCategory_Misc, std::make_shared<menu::ToggleButtonElement>("BunnyHop", "BunnyHop"));
+
 	hooks::add_listener(hooks::e_hook_type::create_move, movement_create_move);
 });

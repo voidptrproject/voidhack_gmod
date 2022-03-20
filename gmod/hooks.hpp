@@ -14,21 +14,25 @@ namespace hooks {
 		lock_cursor
 	};
 
-	struct custom_hook_t {
-		std::vector<void*> callbacks;
+	namespace internal {
+		void hook(LPVOID address, LPVOID new_function, LPVOID* original);
+		void unhook(LPVOID address);
+	}
 
-		void* original;
-		void* hook;
+	template <typename func> struct hook_t {
+		hook_t() {}
+		hook_t(func new_function) : hook_fn(new_function) {}
+		~hook_t() {}
 
-		custom_hook_t(void* hook) : hook(hook) {}
+		func original;
+		func hook_fn;
 
-		void add_callback(void* callback) { callbacks.push_back(callback); }
+		void hook(uintptr_t address) { internal::hook((LPVOID)address, (LPVOID)hook_fn, (LPVOID*)&original); }
+		void unhook() { internal::unhook((LPVOID)original); }
 	};
 
 	void add_listener(e_hook_type hook, void* listener);
 
 	void initialize_hooks();
 	void shutdown_hooks();
-
-	custom_hook_t& create_hook(void* target, void* detour);
 }
