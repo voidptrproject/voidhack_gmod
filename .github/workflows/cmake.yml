@@ -39,6 +39,6 @@ jobs:
         prerelease: true
         files: |
           LICENSE.txt
-          gmod.dll
+          ${{github.workspace}}/build/gmod/Release/gmod.dll
 
       
