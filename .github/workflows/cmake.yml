@@ -33,6 +33,8 @@ jobs:
       
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
+        title: "Beta build"
+        automatic_release_tag: "latest"
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         prerelease: true
         files: |
