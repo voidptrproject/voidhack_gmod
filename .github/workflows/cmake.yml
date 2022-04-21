@@ -3,8 +3,6 @@ name: CMake
 on:
   push:
     branches: [ master ]
-    tags:
-      - 'v*'
       
 env:
   BUILD_TYPE: Release
@@ -18,22 +16,17 @@ jobs:
       with:
         submodules: recursive
     
-    - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+   # - name: Configure CMake
+   #   run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
-    - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+   # - name: Build
+   #   run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
       
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
+    - name: Get release
+      id: get_release
+      uses: bruceadams/get-release@v1.2.3
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: "${{ github.ref }}"
-        release_name: "${{ github.ref }}"
-        draft: false
-        prerelease: false
+        GITHUB_TOKEN: ${{ github.token }}
 
     - name: Upload Release Asset
       id: upload-release-asset 
@@ -41,7 +34,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        upload_url: ${{ steps.get_release.outputs.upload_url }}
         asset_path: "${{github.workspace}}/build/gmod/Release/gmod.dll"
         asset_name: gmod.dll
         asset_content_type: application/octet-stream
