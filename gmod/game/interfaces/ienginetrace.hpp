@@ -101,8 +101,9 @@
 #define   MASK_DEADSOLID                (CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_WINDOW|CONTENTS_GRATE)
 #pragma endregion
 
-
 #include "../math/math.hpp"
+
+constexpr auto MAX_TRACE_LEN = 4096 * 8;
 
 struct ray_t
 {
@@ -252,6 +253,16 @@ namespace utils{
 		
 		ray_t ray;
 		ray.init(start, end);
+
+		interfaces::engine_trace->trace_ray(ray, mask, filter, &tr);
+	}
+
+	inline void trace_angles(trace_t& tr, const c_vector& start, const q_angle& ang, i_trace_filter* filter, int mask = MASK_SHOT) {
+		tr.startpos = start;
+		tr.endpos = tr.startpos + math::angle_to_vector(ang) * c_vector(MAX_TRACE_LEN);
+		
+		ray_t ray;
+		ray.init(tr.startpos, tr.endpos);
 
 		interfaces::engine_trace->trace_ray(ray, mask, filter, &tr);
 	}

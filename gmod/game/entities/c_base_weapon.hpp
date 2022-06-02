@@ -17,9 +17,17 @@ public:
 	netvar("DT_BaseCombatWeapon", "m_iState", get_state, int);
 	netvar("DT_BaseCombatWeapon", "m_hOwner", get_owner_handle, uintptr_t);
 
-	const c_vector& get_bullet_spread()
-	{
-		using fn = const c_vector & (__thiscall*)(void*);
-		return (*(fn**)this)[326](this);
+	c_vector get_bullet_spread(int a) {
+		using fn = c_vector(__thiscall*)(void*, int);
+		return (*(fn**)this)[325](this, a);
+	}
+
+	std::string get_weapon_base() {
+		gmod_lua_interface glua(interfaces::lua_shared->get_lua_interface((int)e_special::glob));
+		push_entity();
+		glua->get_field(-1, "Base");
+		if (!glua->is_type(-1, (int)lua_object_type::STRING))
+			return "";
+		return glua->get_string(-1);
 	}
 };

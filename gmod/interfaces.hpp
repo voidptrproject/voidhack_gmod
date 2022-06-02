@@ -19,3 +19,4 @@
 #include "game/interfaces/cinput.hpp"
 
 #include "game/entities/c_base_weapon.hpp"
+#include "game/misc/md5_check_sum.h"

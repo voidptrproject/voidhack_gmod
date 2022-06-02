@@ -8,6 +8,15 @@
 
 #include <imgui_internal.h>
 
+enum e_visual_settings {
+	EVisualSettings_None = (0 << 0),
+	EVisualSettings_Box = (1 << 0),
+	EVisualSettings_Name = (1 << 1),
+	EVisualSettings_HealthBar = (1 << 2),
+	EVisualSettings_UserGroup = (1 << 3),
+	EVisualSettings_TeamName = (1 << 4),
+};
+
 struct esp_box_t {
 	ImVec2 min;
 	ImVec2 max;
@@ -34,8 +43,11 @@ struct esp_render_object_t {
 	c_color name_color;
 };
 
-static std::vector<esp_render_object_t> esp_render_objects;
-static std::mutex render_mutex;
+std::vector<esp_render_object_t> esp_render_objects;
+std::mutex render_mutex;
+
+create_variable(draw_esp, bool);
+create_variable(esp_visual_settings, int);
 
 inline bool get_entity_box(c_base_entity* ent, esp_render_object_t& render_object) {
 	c_vector flb, brt, blb, frt, frb, brb, blt, flt;
@@ -94,22 +106,22 @@ void esp_render_function(render::render_data_t& data) {
 	std::lock_guard lock(render_mutex);
 
 	for (auto& i : esp_render_objects) {
-		auto drawFlags = settings::GetVariable<int>("EspVisualSettings");
+		auto drawFlags = esp_visual_settings.get();
 		std::array<float, 4> lastTextPositions = { i.box.min.y, i.box.min.y, i.box.max.y, i.box.min.y };
 
-		if (drawFlags & settings::EVisualSettings_Name) {
+		if (drawFlags & EVisualSettings_Name) {
 			auto namePosition = ImVec2{ i.box.center().x - render::calculate_text_size(i.name).x / 2,
 										lastTextPositions[0] - render::calculate_text_size(i.name).y };
 			data.draw_list->AddTextOutlined(ImGui::GetFont(), namePosition, i.name_color, colors::black_color, i.name.c_str());
 			lastTextPositions[0] = namePosition.y;
 		}
-		if (drawFlags & settings::EVisualSettings_TeamName) {
+		if (drawFlags & EVisualSettings_TeamName) {
 			auto teamNamePosition = ImVec2{ i.box.center().x - render::calculate_text_size(i.player_data.value().team_name).x / 2.f,
 											lastTextPositions[2]};
 			data.draw_list->AddTextOutlined(ImGui::GetFont(), teamNamePosition, i.main_color, colors::black_color, i.player_data.value().team_name.c_str());
 			lastTextPositions[2] = teamNamePosition.y + render::calculate_text_size(i.player_data.value().team_name).y / 2.f;
 		}
-		if (drawFlags & settings::EVisualSettings_UserGroup) {
+		if (drawFlags & EVisualSettings_UserGroup) {
 			auto userGroupPosition = ImVec2{ i.box.center().x - render::calculate_text_size(i.player_data.value().user_group).x / 2.f,
 											 lastTextPositions[2] + 1.f };
 			data.draw_list->AddTextOutlined(ImGui::GetFont(), userGroupPosition, i.player_data.value().is_admin ? colors::red_color : colors::white_color,
@@ -117,22 +129,24 @@ void esp_render_function(render::render_data_t& data) {
 			lastTextPositions[2] = userGroupPosition.y;
 		}
 		
-		if (drawFlags & settings::EVisualSettings_Box) {
+		if (drawFlags & EVisualSettings_Box) {
 			data.draw_list->AddRect(i.box.min, i.box.max, i.main_color, 0.f, 0, 3.f);
 			data.draw_list->AddRect(i.box.min - ImVec2(2.f, 2.f), i.box.max + ImVec2(2.f, 2.f), colors::black_color);
 			data.draw_list->AddRect(i.box.min + ImVec2(2.f, 2.f), i.box.max - ImVec2(2.f, 2.f), colors::black_color);
 		}
 
-		if (drawFlags & settings::EVisualSettings_HealthBar) {
+		if (drawFlags & EVisualSettings_HealthBar) {
 			data.draw_list->AddRectFilledMultiColor({ i.box.max.x + 3, i.box.min.y + ((i.box.max.y - i.box.min.y) * ((100.f - i.health) / 100.f)) },
 				{ i.box.max.x + 6, i.box.max.y }, colors::blue_color, colors::blue_color, colors::green_color, colors::green_color);
 		}
+
+		
 	}
 	//esp_render_objects.clear();
 }
 
 void esp_update(const int stage) {
-	if (stage != (int)e_frame_stage::frame_start || !settings::GetVariable<bool>("Esp")) {
+	if (stage != (int)e_frame_stage::frame_start || !draw_esp) {
 		if (stage == (int)e_frame_stage::frame_start) {
 			render_mutex.lock();
 			esp_render_objects.clear();
@@ -141,54 +155,54 @@ void esp_update(const int stage) {
 		return;
 	}
 
-	render_mutex.lock();
-	esp_render_objects.clear();
+	if (render_mutex.try_lock()) {
+		esp_render_objects.clear();
 
-	std::vector<esp_render_object_t> tmp;
-	for (auto i = 0; i < interfaces::entity_list->get_highest_entity_index(); ++i) {
-		auto entity = get_entity_by_index(i);
-		if (!entity || !entity->is_alive() || entity->is_dormant())
-			continue;
-		if (entity->equal(get_local_player()) || !entity->is_player())
-			continue;
-		
-		esp_render_object_t render_obj;
-		if (!get_entity_box(entity, render_obj))
-			continue;
-		
-		render_obj.health = std::clamp(entity->get_health_procentage(), 0, 100);
-		render_obj.main_color = entity->as_player()->get_team_color();
-		render_obj.name = entity->as_player()->get_name();
-		
-		esp_player_render_data_t player_data;
-		player_data.user_group = entity->as_player()->get_user_group();
-		player_data.is_admin = entity->as_player()->is_admin();
-		player_data.team_name = entity->as_player()->get_team_name();
+		std::vector<esp_render_object_t> tmp;
+		for (auto i = 0; i < interfaces::entity_list->get_highest_entity_index(); ++i) {
+			auto entity = get_entity_by_index(i);
+			if (!entity || !entity->is_alive() || entity->is_dormant())
+				continue;
+			if (entity->equal(get_local_player()) || !entity->is_player())
+				continue;
 
-		render_obj.name_color = colors::white_color;
-		render_obj.player_data.emplace(std::move(player_data));
+			esp_render_object_t render_obj;
+			if (!get_entity_box(entity, render_obj))
+				continue;
 
-		tmp.emplace_back(std::move(render_obj));
+			render_obj.health = std::clamp(entity->get_health_procentage(), 0, 100);
+			render_obj.main_color = entity->as_player()->get_team_color();
+			render_obj.name = entity->as_player()->get_name();
+
+			esp_player_render_data_t player_data;
+			player_data.user_group = entity->as_player()->get_user_group();
+			player_data.is_admin = entity->as_player()->is_admin();
+			player_data.team_name = entity->as_player()->get_team_name();
+
+			render_obj.name_color = colors::white_color;
+			render_obj.player_data.emplace(std::move(player_data));
+
+			tmp.emplace_back(std::move(render_obj));
+		}
+
+		esp_render_objects.swap(tmp);
+		render_mutex.unlock();
 	}
-
-	esp_render_objects.swap(tmp);
-	render_mutex.unlock();
 }
 
-static inline features::feature esp_feature([]() {
+features::feature esp_feature([]() {
 	using namespace ImGui;
+	
+	settings::register_variables(draw_esp, esp_visual_settings);
 
-	settings::CreateVariable("Esp", false);
-	settings::CreateVariable("EspVisualSettings", 0);
-
-	menu::ToggleButtonElement toggleButton("Esp", "Esp");
+	menu::ToggleButtonElement toggleButton("Esp", draw_esp.ptr());
 	toggleButton.SetPopupFunction([]() {
 		BeginGroup();
-		CheckboxFlags("Box##ESPBOX", settings::GetVariablePointer<int>("EspVisualSettings"), settings::EVisualSettings_Box);
-		CheckboxFlags("Health bar##ESPBOX", settings::GetVariablePointer<int>("EspVisualSettings"), settings::EVisualSettings_HealthBar);
-		CheckboxFlags("Name##ESPBOX", settings::GetVariablePointer<int>("EspVisualSettings"), settings::EVisualSettings_Name);
-		CheckboxFlags("Team name##ESPBOX", settings::GetVariablePointer<int>("EspVisualSettings"), settings::EVisualSettings_TeamName);
-		CheckboxFlags("User group##ESPBOX", settings::GetVariablePointer<int>("EspVisualSettings"), settings::EVisualSettings_UserGroup);
+		CheckboxFlags("Box##ESPBOX", esp_visual_settings.ptr(), EVisualSettings_Box);
+		CheckboxFlags("Health bar##ESPBOX", esp_visual_settings.ptr(), EVisualSettings_HealthBar);
+		CheckboxFlags("Name##ESPBOX", esp_visual_settings.ptr(), EVisualSettings_Name);
+		CheckboxFlags("Team name##ESPBOX", esp_visual_settings.ptr(), EVisualSettings_TeamName);
+		CheckboxFlags("User group##ESPBOX", esp_visual_settings.ptr(), EVisualSettings_UserGroup);
 		EndGroup();
 	});
 

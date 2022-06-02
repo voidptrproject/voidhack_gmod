@@ -26,6 +26,11 @@ public:
 	virtual void nop8() = 0;
 	virtual float get_latency(int a2) = 0;
 	virtual float get_avg_latency(int a2) = 0;
+
+	// https://imgur.com/SMUhDWW && https://github.com/lua9520/source-engine-2018-hl2_src/blob/3bf9df6b2785fa6d951086978a3e66f49427166a/engine/net_chan.h#L272
+	int32_t chokedpackets() {
+		return *(int32_t*)(((uintptr_t)this) + 0x001F);
+	}
 };
 
 class i_material;

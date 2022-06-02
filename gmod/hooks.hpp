@@ -6,12 +6,12 @@
 namespace hooks {
 	using create_move_listener = bool(*)(float, c_user_cmd*);
 	using frame_stage_notify_listener = void(*)(int);
-	using lock_cursor_listener = bool(*)();
+	using cl_move_listener = void(*)(float, bool);
 
 	enum class e_hook_type {
 		create_move,
 		frame_stage_notify,
-		lock_cursor
+		cl_move
 	};
 
 	namespace internal {
@@ -35,4 +35,14 @@ namespace hooks {
 
 	void initialize_hooks();
 	void shutdown_hooks();
+}
+
+namespace utils {
+	namespace details {
+		extern bool current_send_packets;
+		void apply_send_packets();
+	}
+	inline bool send_packets(bool val) {
+		details::current_send_packets = val;
+	}
 }

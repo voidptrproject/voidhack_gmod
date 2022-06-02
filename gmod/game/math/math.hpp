@@ -41,7 +41,7 @@ using q_angle = c_vector;
 
 namespace math
 {
-	inline void vector_to_angel(const c_vector& forward, q_angle& out)
+	inline void vector_to_angle(const c_vector& forward, q_angle& out)
 	{
 		float tmp, yaw, pitch;
 
@@ -94,7 +94,7 @@ namespace math
 	inline q_angle get_angle(q_angle src, q_angle dst)
 	{
 		q_angle out_angle;
-		vector_to_angel(dst - src, out_angle);
+		vector_to_angle(dst - src, out_angle);
 		return out_angle;
 	}
 
@@ -113,6 +113,16 @@ namespace math
 		sincos(deg2rad(ang[pitch]), &sp, &cp);
 		
 		vector = {cp * cy, cp * sy, -sp};
+	}
+
+	inline auto angle_to_vector(const q_angle& ang) {
+		c_vector vector;
+		float sp, sy, cp, cy;
+		sincos(deg2rad(ang[yaw]), &sy, &cy);
+		sincos(deg2rad(ang[pitch]), &sp, &cp);
+
+		vector = { cp * cy, cp * sy, -sp };
+		return vector;
 	}
 
 	inline void angle_to_vectors(const q_angle& ang, c_vector& forward, c_vector& right, c_vector& up)

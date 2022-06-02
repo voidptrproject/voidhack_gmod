@@ -103,6 +103,11 @@ public:
 	int get_health_procentage() {
 		return 100 / get_max_health() * get_health();
 	}
+
+	std::string get_class_name() {
+		static auto function =  memory::symbol_t<const char* (__fastcall*)(void*)>(memory::address_t{{"E8 ? ? ? ? 4D 8B 47 10"}, memory::client_module}.absolute(0x1, 0x5));
+		return function.ptr(this);
+	}
 };
 
 __forceinline c_base_entity* get_entity_by_index(const int i)
