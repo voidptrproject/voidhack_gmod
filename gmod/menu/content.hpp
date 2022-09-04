@@ -51,11 +51,11 @@ void MiscTab() {
 
 void SaveSettingsToFile(const std::string& fileName) {
     std::ofstream stream(env::get_data_path() / (fileName + ".vpcfg"));
-    settings::SaveSettingsToStream(stream);
+    settings::save_settings_to_stream(stream);
 }
 void LoadSettingsFromFile(const std::string& fileName) {
     std::ifstream stream(env::get_data_path() / (fileName + ".vpcfg"));
-    settings::LoadSettingsFromStream(stream);
+    settings::load_settings_from_stream(stream);
 }
 bool SaveExists(const std::string& fileName) {
     return std::filesystem::exists(env::get_data_path() / (fileName + ".vpcfg"));

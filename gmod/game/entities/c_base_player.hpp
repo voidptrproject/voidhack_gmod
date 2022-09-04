@@ -110,6 +110,11 @@ public:
 		static auto function = memory::symbol_t<void* (__fastcall*)(void*)>({ { "40 53 48 83 EC 20 48 39 0D ? ? ? ? 48 8B D9 75 26" }, memory::client_module });
 		return (c_base_player*)function.ptr(this);
 	}
+
+	c_base_combat_weapon* get_active_weapon() {
+		static auto function = memory::symbol_t<c_base_combat_weapon* (__fastcall*)(void*)>({{"40 53 48 83 EC 20 48 3B 0D ? ? ? ?"}, memory::client_module});
+		return function.ptr(this);
+	}
 };
 
 __forceinline c_base_player* get_local_player()

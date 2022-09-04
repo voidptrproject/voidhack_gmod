@@ -7,6 +7,15 @@
 
 #include <Windows.h>
 
+#include <d3dx9.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image.h>
+#include <stb_image_resize.h>
+#include <stb_image_write.h>
+
 using namespace menu;
 
 enum class EMenuState {
@@ -28,7 +37,53 @@ bool menu::MenuOpen() {
 	return GetMenuContext().state == EMenuState::Opened || GetMenuContext().fadeAnimation > 0.f;
 }
 
-static bool StyleSetuped = false;
+bool StyleSetuped = false;
+void* BackgroundImageData = nullptr;
+ImVec2 ImageSizes;
+float ImageAlpha = 0.8f;
+bool AlreadyUpdateImage = false;
+
+void LoadBackgroundImage() {
+	if (AlreadyUpdateImage)
+		return;
+	AlreadyUpdateImage = true;
+	std::thread([&]() {
+		auto image_path = (env::get_data_path() / "bg.png");
+
+		int w, h, cn;
+		unsigned char* imageData = stbi_load(image_path.generic_string().c_str(), &w, &h, &cn, 4);
+		if (!imageData) return;
+
+		auto targetSize = ImVec2(ImGui::GetIO().DisplaySize.x / 3.f, ImGui::GetIO().DisplaySize.y / 3.f);
+		auto newSize = ImVec2(w, h);
+
+		while (targetSize.x < newSize.x || targetSize.y < newSize.y) {
+			newSize.x -= 10;
+			newSize.y -= 10;
+		}
+
+		stbir_resize_uint8(imageData, w, h, 0, imageData, newSize.x, newSize.y, 0, cn);
+		w = newSize.x;
+		h = newSize.y;
+
+		int dataSize = 0;
+		auto data = stbi_write_png_to_mem(imageData, 0, w, h, cn, &dataSize);
+
+		PDIRECT3DTEXTURE9 texture;
+		auto result = D3DXCreateTextureFromFileInMemory(render::get_device(), data, dataSize, &texture);
+		if (result != S_OK) return;
+
+		D3DSURFACE_DESC image_desc;
+		texture->GetLevelDesc(0, &image_desc);
+		BackgroundImageData = texture;
+		ImageSizes = { (float)image_desc.Width, (float)image_desc.Height };
+
+		stbi_image_free(imageData);
+		free(data);
+
+		AlreadyUpdateImage = false;
+		}).detach();
+}
 
 void menu::render_menu() {
 	using namespace ImGui;
@@ -37,7 +92,7 @@ void menu::render_menu() {
 		ImMin(GetMenuContext().fadeAnimation + GetIO().DeltaTime * 2.f, 1.f) : ImMax(GetMenuContext().fadeAnimation - GetIO().DeltaTime * 2.f, 0.f);
 
 	if (menu::MenuOpen()) {
-		if (interfaces::surface->is_cursor_visible() && !ImGui::GetIO().MouseDrawCursor) {
+		if (!interfaces::surface->is_cursor_visible() && !ImGui::GetIO().MouseDrawCursor) {
 			GetIO().MouseDrawCursor = true;
 		}
 		PushStyleVar(ImGuiStyleVar_Alpha, GetMenuContext().fadeAnimation);
@@ -56,7 +111,24 @@ void menu::render_menu() {
 			TabSelector(i.name.c_str(), &i.state);
 		}
 
+		if (BackgroundImageData) {
+			PushStyleVar(ImGuiStyleVar_Alpha, ImMin(ImageAlpha, GetMenuContext().fadeAnimation));
+			SetCursorPos(GetWindowSize() - ImageSizes);
+			Image(BackgroundImageData, ImageSizes);
+			PopStyleVar();
+		}
+
 		End();
+
+		if (BackgroundImageData) {
+			Begin("YOU ARE GAY");
+			SliderFloat("Fuck me...", &ImageAlpha, 0.f, 1.f);
+			if (Button("Update##BGUPDATE") && std::filesystem::exists((env::get_data_path() / "bg.png"))) {
+				LoadBackgroundImage();
+			}
+			End();
+		}
+
 		PopStyleColor();
 		PopStyleVar(4);
 
@@ -70,20 +142,26 @@ void menu::render_menu() {
 			i.animationState = i.state ? ImMin(i.animationState + GetIO().DeltaTime * 2.f, 1.f) : ImMax(i.animationState - GetIO().DeltaTime * 2.f, 0.f);
 		}
 
+		if (!BackgroundImageData && std::filesystem::exists((env::get_data_path() / "bg.png"))) {
+			LoadBackgroundImage();
+		}
 	} else if (GetIO().MouseDrawCursor) {
 		GetIO().MouseDrawCursor = false;
 	}
 }
 
-bool LockCursorHandler() {
-	return menu::MenuOpen();
-}
+hooks::hook_t<void(__stdcall*)(i_surface*)> lock_cursor_hook([](i_surface* self) {
+	if (menu::MenuOpen())
+		return self->unlock_cursor();
+	return lock_cursor_hook.original(self);
+});
 
 void menu::InitializeMenu() {
-	settings::CreateVariable<int>("OpenMenuKey", VK_INSERT);
+  	static int OpenMenuKey = VK_INSERT;
+	
+	lock_cursor_hook.hook(interfaces::surface.get_virtual_table()[66]);
 
-	hooks::add_listener(hooks::e_hook_type::lock_cursor, LockCursorHandler);
-	input::add_handler({"MenuOpen", settings::GetVariablePointer<int>("OpenMenuKey"), [&](input::EKeyState state) {
+	input::add_handler({"MenuOpen", &OpenMenuKey, [&](input::EKeyState state) {
 		if (state == input::EKeyState::Released)
 			GetMenuContext().state = GetMenuContext().state == EMenuState::Closed ? EMenuState::Opened : EMenuState::Closed;
 		}}

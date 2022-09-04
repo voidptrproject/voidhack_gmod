@@ -52,6 +52,10 @@ public:
 	c_vector& operator*=(const c_vector& left);
 	c_vector& operator/=(const c_vector& left);
 
+	inline c_vector operator-() const {
+		return {-x, -y, -z};
+	}
+
 	operator ImVec2() { return ImVec2{ x, y }; };
 
 	c_vector to_string_friendly() const

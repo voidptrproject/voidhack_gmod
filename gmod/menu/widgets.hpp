@@ -16,6 +16,8 @@
 #include <string_view>
 #include "../globals.hpp"
 
+#include "keys_names.hpp"
+
 namespace menu {
 
     inline void TabSelector(std::string_view name, bool* isActive) {
@@ -69,6 +71,62 @@ namespace menu {
         animations[name.data()] = *var ? ImMin(animations[name.data()] + GetIO().DeltaTime, 1.f) : ImMax(animations[name.data()] - GetIO().DeltaTime, 0.f);
     }
 
+    inline bool Hotkey(std::string_view name, int* key, const ImVec2& size_arg = {}) {
+        using namespace ImGui;
+        static std::map<std::string, bool> map;
+
+        auto labelSize = CalcTextSize(name.data(), 0, true);
+        ImVec2 size = CalcItemSize(size_arg, GetIO().DisplaySize.x / 6.f, labelSize.y + GetStyle().FramePadding.y * 2.0f);
+        InvisibleButton(name.data(), size);
+
+        std::string viewText;
+        bool& isInChange = map[name.data()];
+        auto newKey = *key;
+        bool valueWasChanged = false;
+
+        if (GetIO().MouseClicked[0] && !IsItemHovered()) {
+            isInChange = false;
+            ClearActiveID();
+        }
+
+        if (IsItemClicked() && !isInChange) {
+            isInChange = true;
+            GetIO().MouseDown[0] = false;
+        }
+
+        constexpr int mouseButtons[] = { VK_LBUTTON, VK_RBUTTON, VK_MBUTTON, VK_XBUTTON1, VK_XBUTTON2 };
+        if (isInChange) {
+            for (auto i = 0; i < 5; ++i) 
+                if (GetIO().MouseDown[i])
+                    newKey = mouseButtons[i], valueWasChanged = true, ClearActiveID();
+
+            if (!valueWasChanged) 
+                for (auto i = VK_BACK; i <= VK_RMENU; ++i)
+                    if (GetIO().KeysDown[i])
+                        newKey = i, valueWasChanged = true, ClearActiveID();
+        }
+
+        if (IsKeyPressedMap(ImGuiKey_Escape)) {
+            isInChange = false;
+            ClearActiveID();
+        } else if (valueWasChanged) {
+            *key = newKey;
+            isInChange = false;
+
+            SetItemDefaultFocus();
+        }
+
+        viewText = isInChange ? "..." : KeyNames[newKey];
+        auto viewTextSize = CalcTextSize(viewText.c_str());
+
+        RenderFrame(GetItemRectMin(), GetItemRectMax(), GetColorU32(ImGuiCol_Button), true, GetStyle().FrameRounding);
+
+        const ImRect clipRect = {GetItemRectMin(), GetItemRectMax()};
+        RenderTextClipped(GetItemRectMin() + GetStyle().FramePadding, GetItemRectMax() - GetStyle().FramePadding, viewText.c_str(), 0, 0, GetStyle().ButtonTextAlign, &clipRect);
+
+        return valueWasChanged;
+    }
+
     enum EMenuCategory {
         EMenuCategory_AimBot = 0,
         EMenuCategory_Esp,
@@ -100,12 +158,12 @@ namespace menu {
     };
 
     class ToggleButtonElement : public MenuElement, public ElementWithPopup {
-        std::string target;
+        bool* target;
     public:
-        ToggleButtonElement(std::string_view id, std::string_view target, MenuElement* parent = 0) : MenuElement(id, parent), target(target) {}
+        ToggleButtonElement(std::string_view id, bool* target, MenuElement* parent = 0) : MenuElement(id, parent), target(target) {}
 
         void Render() override {
-            ToggleButton(GetId(), settings::GetVariablePointer<bool>(target));
+            ToggleButton(GetId(), target);
 
             if (GetPopupFunction()) {
                 if (ImGui::BeginPopupContextItem(NULL, ImGuiPopupFlags_MouseButtonRight)) {

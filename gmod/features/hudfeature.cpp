@@ -8,9 +8,12 @@ struct observer_t {
 	int observing_mode;
 };
 
-static inline c_user_cmd last_cmd;
-static inline std::string map_name;
-static inline std::vector<observer_t> observers;
+c_user_cmd last_cmd;
+std::string map_name;
+std::vector<observer_t> observers;
+
+create_variable(draw_information_hud, bool);
+create_variable(draw_observers_hud, bool);
 
 inline std::string current_time() {
 	time_t now = time(NULL);
@@ -23,16 +26,19 @@ inline std::string current_time() {
 
 void hud_render_function(render::render_data_t& data) {
 	if (interfaces::engine->is_in_game()) {
-		if (settings::GetVariable<bool>("InformationHUD")) {
+		if (draw_information_hud) {
 			std::string server_ip = "localhost";
 			float ping_outgoing, ping_ingoing = 0.f;
+			int chokedpackets = 0;
 			if (auto net_channel = interfaces::engine->get_net_channel_info(); net_channel)
 				server_ip = net_channel->get_ip_address(), ping_ingoing = net_channel->get_avg_latency(FLOW_OUTGOING) * 1000.f,
-				ping_outgoing = net_channel->get_avg_latency(FLOW_INCOMING);
+				ping_outgoing = net_channel->get_avg_latency(FLOW_INCOMING),
+				chokedpackets = net_channel->chokedpackets();
 
 			ImGui::Begin("Information");
 			ImGui::CopiedText("Time: %s", current_time().c_str());
 			ImGui::CopiedText("Server: %s", server_ip.c_str());
+			ImGui::CopiedText("ChokedPackets: %i", chokedpackets);
 			ImGui::CopiedText("Ping outgoing: %i", (uint32_t)(int)ping_outgoing);
 			ImGui::CopiedText("Ping ingoing: %i", (uint32_t)(int)ping_ingoing);
 			ImGui::CopiedText("Map name: %s", map_name.c_str());
@@ -41,8 +47,7 @@ void hud_render_function(render::render_data_t& data) {
 			if (auto local_player = get_local_player(); local_player) {
 				ImGui::Separator();
 				ImGui::LabelText("##LOCALPLAYERTEXT", "LocalPlayer");
-				ImGui::CopiedText("Pointer: 0x%X", (uintptr_t)local_player);
-				ImGui::CopiedText("Flags: 0x%x", local_player->get_flags());
+				ImGui::CopiedText("Flags: %#12X", local_player->get_flags());
 				ImGui::CopiedText("Health: %i", local_player->get_health());
 				ImGui::CopiedText("Velocity: %f", local_player->get_velocity().length());
 				ImGui::Separator();
@@ -51,7 +56,7 @@ void hud_render_function(render::render_data_t& data) {
 			ImGui::End();
 		}
 
-		if (settings::GetVariable<bool>("ObserversHUD")) {
+		if (draw_observers_hud) {
 			ImGui::Begin("Observers");
 			for (auto& o : observers)
 				ImGui::CopiedText("%s -> %s [%i]", o.observer_name.c_str(), o.target_name.c_str(), o.observing_mode);
@@ -61,12 +66,12 @@ void hud_render_function(render::render_data_t& data) {
 }
 
 bool hud_render_create_move(float f, c_user_cmd* cmd) {
-	if (settings::GetVariable<bool>("InformationHUD")) {
+	if (draw_information_hud) {
 		last_cmd = *cmd;
 		map_name = interfaces::engine->get_level_name();
 	}
 
-	if (settings::GetVariable<bool>("ObserversHUD")) {
+	if (draw_observers_hud) {
 		observers.clear();
 		for (auto i = 0; i <= interfaces::entity_list->get_highest_entity_index(); ++i) {
 			auto entity = get_player_by_index(i);
@@ -86,15 +91,14 @@ bool hud_render_create_move(float f, c_user_cmd* cmd) {
 }
 
 
-static inline features::feature hud_feature([]() {
-	settings::CreateVariable("InformationHUD", false);
-	settings::CreateVariable("ObserversHUD", false);
+features::feature hud_feature([]() {
+	settings::register_variables(draw_information_hud, draw_observers_hud);
 
 	menu::AddElementToCategory(menu::EMenuCategory_Misc, 
-		std::make_shared<menu::ToggleButtonElement>("Information HUD", "InformationHUD"));
+		std::make_shared<menu::ToggleButtonElement>("Information HUD", draw_information_hud.ptr()));
 
 	menu::AddElementToCategory(menu::EMenuCategory_Misc, 
-		std::make_shared<menu::ToggleButtonElement>("Observers HUD", "ObserversHUD"));
+		std::make_shared<menu::ToggleButtonElement>("Observers HUD", draw_observers_hud.ptr()));
 
 	hooks::add_listener(hooks::e_hook_type::create_move, hud_render_create_move);
 	render::add_render_handler(hud_render_function);

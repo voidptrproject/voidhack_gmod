@@ -55,6 +55,9 @@ namespace memory {
 			return module_t((HMODULE)get_info().AllocationBase);
 		}
 
+		template <typename T>
+		inline T* as() { return (T*)address; }
+
 		uintptr_t operator()() const { return address; }
 		operator uintptr_t() const { return address; }
 
@@ -81,15 +84,15 @@ namespace memory {
 	};
 
 	// Modules ------
-	static inline module_t tier0_module("tier0.dll");
-	static inline module_t menusystem_module("menusystem.dll");
-	static inline module_t engine_module("engine.dll");
-	static inline module_t client_module("client.dll");
-	static inline module_t material_system_module("materialsystem.dll");
-	static inline module_t matsurface_module("vguimatsurface.dll");
-	static inline module_t lua_shared_module("lua_shared.dll");
-	static inline module_t vgui_module("vgui2.dll");
-	static inline module_t vstdlib_module("vstdlib.dll");
+	inline module_t tier0_module("tier0.dll");
+	inline module_t menusystem_module("menusystem.dll");
+	inline module_t engine_module("engine.dll");
+	inline module_t client_module("client.dll");
+	inline module_t material_system_module("materialsystem.dll");
+	inline module_t matsurface_module("vguimatsurface.dll");
+	inline module_t lua_shared_module("lua_shared.dll");
+	inline module_t vgui_module("vgui2.dll");
+	inline module_t vstdlib_module("vstdlib.dll");
 	// -----------
 
 	// Global vars --------
@@ -99,6 +102,7 @@ namespace memory {
 	template<class t> struct interface_t {
 		interface_t(t* p) : ptr(p) {}
 		interface_t(const memory::module_t& mod, std::string_view name) { ptr = create_interface(mod, name); }
+		interface_t(const memory::address_t& address) { ptr = (t*)address.address; }
 
 		t* operator->() { return ptr; }
 		t* ptr;

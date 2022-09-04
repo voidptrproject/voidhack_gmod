@@ -72,6 +72,14 @@ void render::internal::render_hook(IDirect3DDevice9* dev, const memory::address_
 
 	render_data_t shared_render_data;
 	override_render_state srgb_override(dev, D3DRS_SRGBWRITEENABLE, 0);
+	override_render_state colorwriteenable(dev, D3DRS_COLORWRITEENABLE, 0xffffffff);
+
+	IDirect3DStateBlock9* pixel_state = NULL;
+	IDirect3DVertexDeclaration9* vertex_declaration;
+	IDirect3DVertexShader9* vertex_shader;
+	device->CreateStateBlock(D3DSBT_PIXELSTATE, &pixel_state);
+	device->GetVertexDeclaration(&vertex_declaration);
+	device->GetVertexShader(&vertex_shader);
 
 	ImGui_ImplDX9_NewFrame();
 	ImGui_ImplWin32_NewFrame();
@@ -87,6 +95,11 @@ void render::internal::render_hook(IDirect3DDevice9* dev, const memory::address_
 	ImGui::EndFrame();
 	ImGui::Render();
 	ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+
+	pixel_state->Apply();
+	pixel_state->Release();
+	device->SetVertexDeclaration(vertex_declaration);
+	device->SetVertexShader(vertex_shader);
 }
 
 void render::add_render_handler(render::render_function_t handler) {

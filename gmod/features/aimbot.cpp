@@ -1,6 +1,10 @@
 #include "features.hpp"
 
 std::mutex aimbot_mutex;
+create_variable(draw_aimbot_target, bool);
+create_variable(aimbot_enabled, bool);
+create_variable(aimbot_bind, settings::bind_variable_t);
+
 struct {
     c_vector position;
 } aimbot_target;
@@ -84,6 +88,9 @@ auto angle_to_vector(const q_angle& angle) {
 struct { bool shoot = false; c_vector position; bool draw = false; } current_target;
 
 bool create_move_callback(float frametime, c_user_cmd* cmd) {
+    if (!aimbot_enabled && !draw_aimbot_target)
+        return false;
+
     auto target = find_aimbot_target();
     current_target.draw = false;
 
@@ -97,7 +104,7 @@ bool create_move_callback(float frametime, c_user_cmd* cmd) {
         current_target.draw = false;
     }
 
-    if (input::get_key_state(VK_MENU)) {
+    if (aimbot_enabled) {
         cmd->viewangles = angle_to_entity(target);
         current_target.shoot = true;
     }
@@ -106,17 +113,26 @@ bool create_move_callback(float frametime, c_user_cmd* cmd) {
 }
 
 void render_handler(render::render_data_t& data) {
-    if (current_target.draw) {
+    if (draw_aimbot_target && current_target.draw) {
         data.draw_list->AddLine({ ImGui::GetIO().DisplaySize.x / 2.f, ImGui::GetIO().DisplaySize.y }, current_target.position, 
             current_target.shoot ? colors::red_color : colors::white_color);
     }
 }
 
-static inline features::feature aimbot_feature([]() {
-    settings::CreateVariable("DrawAimBotTarget", false);
+features::feature aimbot_feature([]() {
+    settings::register_variables(draw_aimbot_target, aimbot_enabled, aimbot_bind);
 
-    menu::AddElementToCategory(menu::EMenuCategory_AimBot, std::make_shared<menu::ToggleButtonElement>("Draw AimBot Target", "DrawAimBotTarget"));
+    menu::AddElementToCategory(menu::EMenuCategory_AimBot, std::make_shared<menu::ToggleButtonElement>("Draw AimBot Target", draw_aimbot_target.ptr()));
+
+    auto am = std::make_shared<menu::ToggleButtonElement>("Aimbot##AIMBOT_ENABLED", aimbot_enabled.ptr());
+    am->SetPopupFunction([&]() {
+        menu::Hotkey("AIMBOTHOTKEY", &aimbot_bind.get().key);
+    });
+    menu::AddElementToCategory(menu::EMenuCategory_AimBot, am);
 
 	hooks::add_listener(hooks::e_hook_type::create_move, create_move_callback);
     render::add_render_handler(render_handler);
+    input::add_handler({ "AimBot", &aimbot_bind.get().key, [&](input::EKeyState state) {
+         aimbot_enabled = state == input::EKeyState::Pressed;
+    }});
 });

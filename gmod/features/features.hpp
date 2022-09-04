@@ -11,6 +11,8 @@
 #include "../input.hpp"
 #include "../menu/menu.hpp"
 
+#include "../game/entities/c_base_weapon.hpp"
+
 namespace features {
 	struct feature;
 	struct features_interface_t {
